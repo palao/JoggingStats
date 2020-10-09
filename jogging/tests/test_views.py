@@ -20,7 +20,7 @@
 ########################################################################
 
 #import unittest
-
+from django.urls import reverse
 from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework.test import APIRequestFactory
@@ -30,7 +30,7 @@ class NewAccountSerializerTestCase(TestCase):
     def test_can_create_account(self):
         factory = APIRequestFactory()
         request = factory.post(
-            "/new-user/",
+            reverse("new-user"),
             {"username": "mike", "password": "1259f"},
             format="json",
         )
