@@ -22,3 +22,4 @@ debug
 .coverage
 docs/_build/*
 dist/*
+db.sqlite3
