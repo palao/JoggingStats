@@ -28,8 +28,8 @@ import requests
 class NewUserTestCase(LiveServerTestCase):
     username = "bob"
     password = "1Mpossibl3"
-    
-    def test_can_create_one_account_through_the_api(self):
+
+    def test_cannot_send_data_if_not_authenticated(self):
         # Bob is an amateur runner. He loves running. He tries to run
         # every day before or after working. His friend Haile told 
         # him about a new site that he can use to store and retrieve
@@ -45,8 +45,19 @@ class NewUserTestCase(LiveServerTestCase):
             "location": "Frankfurt am Main",
         }
         post_resp = requests.post(
-            "http://127.0.0.1:8000/run", data=todays_stats
+            self.live_server_url+"/run", data=todays_stats
         )
-        # Okay, he needs an account; so he creates an account:
+        # but something wrong happens:
+        self.assertFalse(post_resp.ok)
+        # indeed the status code is 403: Forbidden
+        self.assertEqual(post_resp.status_code, 403)
+        # and the reason is: missing credentials:
+        self.assertIn(
+            "Authentication credentials were not provided",
+            post_resp.json()["detail"]
+        )
+        # Okay, he got it: he needs an account.
         
-        
+    def test_can_create_one_account_through_the_api(self):
+        # ...so he creates an account.
+        self.fail()
