@@ -20,11 +20,20 @@
 ########################################################################
 
 
-from django.db import models
+from datetime import date, timedelta
+
+from django.test import TestCase
+
+from jogging.models import Run
 
 
-class Run(models.Model):
-    date = models.DateField()
-    distance = models.FloatField()
-    time = models.DurationField()
-    location = models.CharField(max_length=256)
+class RunTestCase(TestCase):
+    def test_can_be_saved(self):
+        run = Run(
+            date=date.today(),
+            distance=2.5,
+            time=timedelta(minutes=3, seconds=9),
+            location="Lima"
+        )
+        run.save()
+        self.assertEqual(Run.objects.count(), 1)
