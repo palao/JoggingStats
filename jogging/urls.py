@@ -19,27 +19,12 @@
 #
 ########################################################################
 
-#import unittest
-import json
 
-from django.urls import reverse
-from django.contrib.auth.models import User
-from django.test import TestCase
-from rest_framework.test import APIRequestFactory
+from django.urls import path
 
-from jogging.views import NewAccount
+from jogging import views
 
 
-class NewAccountTestCase(TestCase):
-    def test_can_create_account(self):
-        factory = APIRequestFactory()
-        view = NewAccount.as_view()
-        request = factory.post(
-            view,
-            {"username": "mike", "password": "1259f"},
-            format="json",
-        )
-        response = view(request)
-        self.assertEqual(User.objects.count(), 1)
-        user = User.objects.first()
-        self.assertEqual(user.username, "mike")
+urlpatterns = [
+    path("new-account/", views.NewAccount.as_view(), name="new-account"),
+]
