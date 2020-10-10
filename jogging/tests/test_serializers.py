@@ -22,19 +22,32 @@
 import io
 
 from django.test import TestCase
+from django.contrib.auth.models import User
 from rest_framework.parsers import JSONParser
 
 from jogging.serializers import NewAccountSerializer
 
 
 class NewAccountSerializerTestCase(TestCase):
-    def test_can_deserialize_user(self):
+    def setUp(self):
         json_data = b'{"username": "pedro", "password": "whatever"}'
         stream = io.BytesIO(json_data)
-        data = JSONParser().parse(stream)
-        serializer = NewAccountSerializer(data=data)
+        self.data = JSONParser().parse(stream)
+        self.expected_validated_data = {
+            "username": "pedro", "password": "whatever"
+        }
+        
+    def test_can_deserialize_user(self):
+        serializer = NewAccountSerializer(data=self.data)
         self.assertTrue(serializer.is_valid())
         self.assertEqual(
             dict(serializer.validated_data),
-            {"username": "pedro", "password": "whatever"}
+            self.expected_validated_data
         )
+
+    def test_create_makes_new_user(self):
+        serializer = NewAccountSerializer(data=self.data)
+        serializer.is_valid()
+        new_user = serializer.create(serializer.validated_data)
+        self.assertEqual(User.objects.count(), 1)
+        self.assertEqual(new_user.username, "pedro")

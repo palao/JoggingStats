@@ -27,4 +27,9 @@ class NewAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'password')
+
+    def create(self, validated_data):
+        user = User(username=validated_data["username"])
+        user.save()
+        return user
     
