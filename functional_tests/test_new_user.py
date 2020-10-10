@@ -60,4 +60,17 @@ class NewUserTestCase(LiveServerTestCase):
         
     def test_can_create_one_account_through_the_api(self):
         # ...so he creates an account.
-        self.fail()
+        auth_data = {"username": self.username, "password": self.password}
+        post_resp = requests.post(
+            self.live_server_url+"/new-account/", data=auth_data
+        )
+        # the response is ok
+        self.assertTrue(post_resp.ok)
+        # with the proper status code:
+        self.assertEqual(post_resp.status_code, 201)
+        # and the reason is: the account was created
+        self.assertEqual(post_resp.reason, "Created")
+        # and to wrap it up, the text of the response includes the username:
+        self.assertEqual(post_resp.text, '{"username":"bob"}')
+        # Great! He got his account and he will try to submit data
+        # for the first time!
