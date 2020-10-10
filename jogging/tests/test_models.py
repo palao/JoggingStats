@@ -37,3 +37,8 @@ class RunTestCase(TestCase):
         )
         run.save()
         self.assertEqual(Run.objects.count(), 1)
+        saved = Run.objects.first()
+        self.assertEqual(saved.date, date.today())
+        self.assertEqual(saved.distance, 2.5)
+        self.assertEqual(saved.time, timedelta(minutes=3, seconds=9))
+        self.assertEqual(saved.location, "Lima")
