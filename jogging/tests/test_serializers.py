@@ -51,3 +51,6 @@ class NewAccountSerializerTestCase(TestCase):
         new_user = serializer.create(serializer.validated_data)
         self.assertEqual(User.objects.count(), 1)
         self.assertEqual(new_user.username, "pedro")
+        self.assertNotEqual(new_user.password, "")
+        with self.assertRaises(KeyError):
+            serializer.validated_data["password"]
