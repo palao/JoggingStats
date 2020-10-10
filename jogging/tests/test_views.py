@@ -43,3 +43,5 @@ class NewAccountTestCase(TestCase):
         self.assertEqual(User.objects.count(), 1)
         user = User.objects.first()
         self.assertEqual(user.username, "mike")
+        with self.assertRaises(KeyError):
+            response.data["password"]
