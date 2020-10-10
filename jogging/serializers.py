@@ -22,6 +22,8 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
+from jogging.models import Run
+
 
 class NewAccountSerializer(serializers.ModelSerializer):
     class Meta:
@@ -36,3 +38,8 @@ class NewAccountSerializer(serializers.ModelSerializer):
         user.save()
         return user
     
+
+class RunSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Run
+        fields = ("date", "distance", "time", "location")

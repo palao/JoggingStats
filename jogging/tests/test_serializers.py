@@ -20,12 +20,14 @@
 ########################################################################
 
 import io
+from datetime import date, timedelta
 
 from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.parsers import JSONParser
 
-from jogging.serializers import NewAccountSerializer
+from jogging.serializers import NewAccountSerializer, RunSerializer
+from jogging.models import Run
 
 
 class NewAccountSerializerTestCase(TestCase):
@@ -54,3 +56,24 @@ class NewAccountSerializerTestCase(TestCase):
         self.assertTrue(new_user.password.startswith("pbkdf2_sha256$"))
         with self.assertRaises(KeyError):
             serializer.validated_data["password"]
+
+
+class RunSerializerTestCase(TestCase):
+    def test_can_serialize_run(self):
+        run = Run(
+            date=date.today(),
+            distance=9.2,
+            time=timedelta(hours=1, seconds=2),
+            location="Las Vegas",
+        )
+        run.save()
+        serializer = RunSerializer(run)
+        self.assertEqual(
+            serializer.data,
+            {
+                "date": str(date.today()),
+                "distance": 9.2,
+                "time": "01:00:02",
+                "location": "Las Vegas",
+            }
+        )
