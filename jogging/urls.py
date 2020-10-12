@@ -27,7 +27,7 @@ from jogging import views
 
 
 router = DefaultRouter()
-router.register(r"run", views.RunViewSet)
+router.register(r"run", views.RunViewSet, basename="run")
 
 
 urlpatterns = [

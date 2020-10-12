@@ -31,13 +31,14 @@ from .permissions import IsOwner
 class NewAccount(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = NewAccountSerializer
-    #permission_classes = (permissions.AllowAny, )
 
 
 class RunViewSet(viewsets.ModelViewSet):
-    queryset = Run.objects.all()
     serializer_class = RunSerializer
     permission_classes = (permissions.IsAuthenticated, )
+
+    def get_queryset(self):
+        return Run.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
