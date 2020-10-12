@@ -30,4 +30,26 @@ class IsOwnerTestCase(unittest.TestCase):
     def test_is_permission(self):
         self.assertTrue(issubclass(IsOwner, BasePermission))
         
-        
+    def test_has_access_if_owner(self):
+        class FakeRequest:
+            user = "peter"
+
+        class FakeObj:
+            owner = "peter"
+            
+        perm = IsOwner()
+        self.assertTrue(
+            perm.has_object_permission(FakeRequest(), None, FakeObj())
+        )
+
+    def test_has_no_access_if_not_owner(self):
+        class FakeRequest:
+            user = "peter"
+
+        class FakeObj:
+            owner = "paul"
+            
+        perm = IsOwner()
+        self.assertFalse(
+            perm.has_object_permission(FakeRequest(), None, FakeObj())
+        )
