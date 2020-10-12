@@ -25,7 +25,7 @@ import json
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.test import TestCase
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from jogging.views import NewAccount, RunViewSet
 
@@ -48,9 +48,27 @@ class NewAccountTestCase(TestCase):
 
 
 class RunViewSetTestCase(TestCase):
+    def test_post_allowed_if_authenticated(self):
+        user = User(username="paul")
+        user.set_password("aDc3")
+        user.save()
+        factory = APIRequestFactory()
+        view = RunViewSet.as_view({'post': 'create'})
+        request = factory.post(
+            view,
+            {
+                "date": "2020-10-12", "distance": "2.6",
+                "time": "01:23:30", "location": "Rome"
+            },
+            format="json",
+        )
+        force_authenticate(request, user=user)
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+        
     def test_forbidden_if_not_logged_in(self):
         factory = APIRequestFactory()
-        view = RunViewSet.as_view({'get': 'list'})
+        view = RunViewSet.as_view({'post': 'create'})
         request = factory.post(
             view,
             {
@@ -61,4 +79,4 @@ class RunViewSetTestCase(TestCase):
         )
         response = view(request)
         self.assertEqual(response.status_code, 403)
-        
+

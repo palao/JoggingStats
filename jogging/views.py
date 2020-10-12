@@ -26,7 +26,7 @@ from django.contrib.auth.models import User
 
 from .serializers import NewAccountSerializer, RunSerializer
 from .models import Run
-
+from .permissions import IsOwner
 
 class NewAccount(generics.CreateAPIView):
     queryset = User.objects.all()
