@@ -19,18 +19,37 @@
 #
 ########################################################################
 
+import unittest
 
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from rest_framework.permissions import BasePermission
 
-from jogging import views
-
-
-router = DefaultRouter()
-router.register(r"run", views.RunViewSet, basename="run")
+from jogging.permissions import IsOwner
 
 
-urlpatterns = [
-    path("new-account/", views.NewAccount.as_view(), name="new-account"),
-    path("", include(router.urls)),
-]
+class IsOwnerTestCase(unittest.TestCase):
+    def test_is_permission(self):
+        self.assertTrue(issubclass(IsOwner, BasePermission))
+        
+    def test_has_access_if_owner(self):
+        class FakeRequest:
+            user = "peter"
+
+        class FakeObj:
+            owner = "peter"
+            
+        perm = IsOwner()
+        self.assertTrue(
+            perm.has_object_permission(FakeRequest(), None, FakeObj())
+        )
+
+    def test_has_no_access_if_not_owner(self):
+        class FakeRequest:
+            user = "peter"
+
+        class FakeObj:
+            owner = "paul"
+            
+        perm = IsOwner()
+        self.assertFalse(
+            perm.has_object_permission(FakeRequest(), None, FakeObj())
+        )

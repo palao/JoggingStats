@@ -19,15 +19,17 @@
 #
 ########################################################################
 
-#import unittest
-import json
+from datetime import timedelta
 
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.test import TestCase
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, force_authenticate
+from rest_framework.renderers import JSONRenderer
 
 from jogging.views import NewAccount, RunViewSet
+from jogging.models import Run
+from jogging.serializers import RunSerializer
 
 
 class NewAccountTestCase(TestCase):
@@ -48,9 +50,25 @@ class NewAccountTestCase(TestCase):
 
 
 class RunViewSetTestCase(TestCase):
-    def test_forbidden_if_not_logged_in(self):
+    def test_create_allowed_if_authenticated(self):
+        user = User.objects.create(username="paul")
         factory = APIRequestFactory()
-        view = RunViewSet.as_view({'get': 'list'})
+        view = RunViewSet.as_view({'post': 'create'})
+        request = factory.post(
+            view,
+            {
+                "date": "2020-10-12", "distance": "2.6",
+                "time": "01:23:30", "location": "Rome"
+            },
+            format="json",
+        )
+        force_authenticate(request, user=user)
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+        
+    def test_create_forbidden_if_not_logged_in(self):
+        factory = APIRequestFactory()
+        view = RunViewSet.as_view({'post': 'create'})
         request = factory.post(
             view,
             {
@@ -61,4 +79,30 @@ class RunViewSetTestCase(TestCase):
         )
         response = view(request)
         self.assertEqual(response.status_code, 403)
-        
+
+    def test_list_fetches_data_from_user_logged_in(self):
+        user = User.objects.create(username="sam")
+        run = Run.objects.create(
+            date="2020-10-13",
+            distance="5.6",
+            time=timedelta(minutes=53, seconds=22),
+            location="Porto",
+            owner=user,
+        )
+        serializer = RunSerializer([run], many=True)
+        expected = JSONRenderer().render(serializer.data)
+        other_user = User.objects.create(username="dave")
+        other_run = Run.objects.create(
+            date="2020-09-23",
+            distance="4.9",
+            time=timedelta(minutes=30, seconds=8),
+            location="Casablanca",
+            owner=other_user,
+        )
+        factory = APIRequestFactory()
+        view = RunViewSet.as_view({'get': 'list'})
+        request = factory.get("/run/")
+        force_authenticate(request, user=user)
+        response = view(request)
+        response.render()
+        self.assertEqual(response.content, expected)

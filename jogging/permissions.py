@@ -20,17 +20,9 @@
 ########################################################################
 
 
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-
-from jogging import views
+from rest_framework.permissions import BasePermission
 
 
-router = DefaultRouter()
-router.register(r"run", views.RunViewSet, basename="run")
-
-
-urlpatterns = [
-    path("new-account/", views.NewAccount.as_view(), name="new-account"),
-    path("", include(router.urls)),
-]
+class IsOwner(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.owner == request.user

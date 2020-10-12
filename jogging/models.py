@@ -28,3 +28,6 @@ class Run(models.Model):
     distance = models.FloatField()
     time = models.DurationField()
     location = models.CharField(max_length=256)
+    owner = models.ForeignKey(
+        "auth.User", related_name="jogging", on_delete=models.CASCADE
+    )
