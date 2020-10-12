@@ -120,3 +120,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+WEATHER = {
+    "APPID": "76589eb0f5c5fd330a8adfda4b6a057e"
+}
