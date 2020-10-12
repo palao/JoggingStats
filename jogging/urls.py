@@ -20,11 +20,17 @@
 ########################################################################
 
 
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
 from jogging import views
 
 
+router = DefaultRouter()
+router.register(r"run", views.RunViewSet)
+
+
 urlpatterns = [
     path("new-account/", views.NewAccount.as_view(), name="new-account"),
+    path("", include(router.urls)),
 ]

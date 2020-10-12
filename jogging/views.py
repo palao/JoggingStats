@@ -20,9 +20,12 @@
 ########################################################################
 
 from rest_framework import generics
+from rest_framework import viewsets
+from rest_framework import permissions
 from django.contrib.auth.models import User
 
-from .serializers import NewAccountSerializer
+from .serializers import NewAccountSerializer, RunSerializer
+from .models import Run
 
 
 class NewAccount(generics.CreateAPIView):
@@ -30,3 +33,8 @@ class NewAccount(generics.CreateAPIView):
     serializer_class = NewAccountSerializer
     #permission_classes = (permissions.AllowAny, )
 
+
+class RunViewSet(viewsets.ModelViewSet):
+    queryset = Run.objects.all()
+    serializer_class = RunSerializer
+    permission_classes = (permissions.IsAuthenticated, )

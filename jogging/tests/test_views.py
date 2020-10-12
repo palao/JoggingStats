@@ -27,7 +27,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 
-from jogging.views import NewAccount
+from jogging.views import NewAccount, RunViewSet
 
 
 class NewAccountTestCase(TestCase):
@@ -45,3 +45,20 @@ class NewAccountTestCase(TestCase):
         self.assertEqual(user.username, "mike")
         with self.assertRaises(KeyError):
             response.data["password"]
+
+
+class RunViewSetTestCase(TestCase):
+    def test_forbidden_if_not_logged_in(self):
+        factory = APIRequestFactory()
+        view = RunViewSet.as_view({'get': 'list'})
+        request = factory.post(
+            view,
+            {
+                "date": "2020-10-12", "distance": "2.6",
+                "time": "01:23:30", "location": "Rome"
+            },
+            format="json",
+        )
+        response = view(request)
+        self.assertEqual(response.status_code, 403)
+        
