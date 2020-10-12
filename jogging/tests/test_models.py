@@ -23,17 +23,22 @@
 from datetime import date, timedelta
 
 from django.test import TestCase
+from django.contrib.auth.models import User
 
 from jogging.models import Run
 
 
 class RunTestCase(TestCase):
     def test_can_be_saved(self):
+        user = User(username="x")
+        user.set_password("2Sdx_")
+        user.save()
         run = Run(
             date=date.today(),
             distance=2.5,
             time=timedelta(minutes=3, seconds=9),
-            location="Lima"
+            location="Lima",
+            owner=user,
         )
         run.save()
         self.assertEqual(Run.objects.count(), 1)
@@ -42,3 +47,4 @@ class RunTestCase(TestCase):
         self.assertEqual(saved.distance, 2.5)
         self.assertEqual(saved.time, timedelta(minutes=3, seconds=9))
         self.assertEqual(saved.location, "Lima")
+        self.assertEqual(saved.owner, user)
