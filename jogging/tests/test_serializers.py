@@ -60,11 +60,13 @@ class NewAccountSerializerTestCase(TestCase):
 
 class RunSerializerTestCase(TestCase):
     def test_can_serialize_run(self):
+        user = User.objects.create(username="pancho")
         run = Run(
             date=date.today(),
             distance=9.2,
             time=timedelta(hours=1, seconds=2),
             location="Las Vegas",
+            owner=user,
         )
         run.save()
         serializer = RunSerializer(run)
