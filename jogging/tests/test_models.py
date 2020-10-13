@@ -21,6 +21,7 @@
 
 
 from datetime import date, timedelta
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.contrib.auth.models import User
@@ -28,8 +29,10 @@ from django.contrib.auth.models import User
 from jogging.models import Run
 
 
+@patch("jogging.models.get_weather")
 class RunTestCase(TestCase):
-    def test_can_be_saved(self):
+    def test_can_be_saved(self, pget_weather):
+        pget_weather.return_value = "Cloudy"
         user = User.objects.create(username="x")
         run = Run(
             date=date.today(),
@@ -47,7 +50,8 @@ class RunTestCase(TestCase):
         self.assertEqual(saved.location, "Lima")
         self.assertEqual(saved.owner, user)
 
-    def test_has_weather_field_set_from_get_weather(self):
+    def test_has_weather_field_set_from_get_weather(self, pget_weather):
+        pget_weather.return_value = "Some weather"
         user = User.objects.create(username="x")
         run = Run(
             date=date.today(),
@@ -57,5 +61,5 @@ class RunTestCase(TestCase):
             owner=user,
         )
         run.save()
-        self.assertEqual(run.weather, "?")
+        self.assertEqual(run.weather, "Some weather")
         

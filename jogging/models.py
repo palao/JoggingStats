@@ -22,6 +22,8 @@
 
 from django.db import models
 
+from .weather import get_weather
+
 
 class Run(models.Model):
     date = models.DateField()
@@ -32,3 +34,7 @@ class Run(models.Model):
         "auth.User", related_name="jogging", on_delete=models.CASCADE
     )
     weather = models.CharField(default="?", max_length=128)
+
+    def save(self, *args, **kwargs):
+        self.weather = get_weather(self.location, self.date)
+        super().save(*args, **kwargs)
