@@ -31,35 +31,29 @@ from jogging.models import Run
 
 @patch("jogging.models.get_weather")
 class RunTestCase(TestCase):
-    def test_can_be_saved(self, pget_weather):
-        pget_weather.return_value = "Cloudy"
-        user = User.objects.create(username="x")
-        run = Run(
+    def setUp(self):
+        self.user = User.objects.create(username="x")
+        self.run = Run(
             date=date.today(),
             distance=2.5,
             time=timedelta(minutes=3, seconds=9),
             location="Lima",
-            owner=user,
+            owner=self.user,
         )
-        run.save()
+        
+    def test_can_be_saved(self, pget_weather):
+        pget_weather.return_value = "Cloudy"
+        self.run.save()
         self.assertEqual(Run.objects.count(), 1)
         saved = Run.objects.first()
         self.assertEqual(saved.date, date.today())
         self.assertEqual(saved.distance, 2.5)
         self.assertEqual(saved.time, timedelta(minutes=3, seconds=9))
         self.assertEqual(saved.location, "Lima")
-        self.assertEqual(saved.owner, user)
+        self.assertEqual(saved.owner, self.user)
 
     def test_has_weather_field_set_from_get_weather(self, pget_weather):
         pget_weather.return_value = "Some weather"
-        user = User.objects.create(username="x")
-        run = Run(
-            date=date.today(),
-            distance=2.5,
-            time=timedelta(minutes=3, seconds=9),
-            location="Lima",
-            owner=user,
-        )
-        run.save()
-        self.assertEqual(run.weather, "Some weather")
+        self.run.save()
+        self.assertEqual(self.run.weather, "Some weather")
         
