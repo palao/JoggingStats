@@ -35,3 +35,7 @@ class GetWeatherTestCase(unittest.TestCase):
         pmeta_weather.assert_called_once_with("Here", "2020/09/17")
         self.assertEqual(pmeta_weather.return_value, weather)
         
+    def test_unknown_provider_returns_None(self, pmeta_weather):
+        settings.WEATHER = {"PROVIDER": "unkwnown_wheather_provider"}
+        weather = get_weather("There", "2020/09/13")
+        self.assertIs(weather, None)

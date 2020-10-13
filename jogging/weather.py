@@ -27,6 +27,9 @@ meta_weather = None
 
 
 def get_weather(location, date):
-    provider = globals()[settings.WEATHER["PROVIDER"]]
+    try:
+        provider = globals()[settings.WEATHER["PROVIDER"]]
+    except KeyError:
+        return None
     return provider(location, date)
 
