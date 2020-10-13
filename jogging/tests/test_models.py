@@ -57,3 +57,8 @@ class RunTestCase(TestCase):
         self.run.save()
         self.assertEqual(self.run.weather, "Some weather")
         
+    def test_leaves_default_value_if_get_weather_is_None(self, pget_weather):
+        pget_weather.return_value = None
+        self.run.save()
+        self.assertEqual(self.run.weather, "?")
+        

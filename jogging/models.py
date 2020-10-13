@@ -36,5 +36,7 @@ class Run(models.Model):
     weather = models.CharField(default="?", max_length=128)
 
     def save(self, *args, **kwargs):
-        self.weather = get_weather(self.location, self.date)
+        weather = get_weather(self.location, self.date)
+        if weather:
+            self.weather = weather
         super().save(*args, **kwargs)
