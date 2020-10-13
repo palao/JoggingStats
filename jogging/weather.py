@@ -37,7 +37,8 @@ def _meta_weather_location_id(location):
         params={"query": location}
     )
     data = response.json()
-    return data[0]["woeid"]
+    if data:
+        return data[0]["woeid"]
 
 
 def get_weather(location, date):

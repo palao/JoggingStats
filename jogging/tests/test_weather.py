@@ -68,3 +68,11 @@ class MetaWeatherLocationIDTestCase(unittest.TestCase):
             "https://www.metaweather.com/api/location/search/",
             params={"query": "Juan Francisco"}
         )
+
+    def test_returns_None_if_unexpected_data_fetched(self, pget):
+        mresponse = MagicMock()
+        mresponse.json.return_value = []
+        pget.return_value = mresponse
+        location_id = _meta_weather_location_id("Juan Francisco")
+        self.assertEqual(location_id, None)
+
