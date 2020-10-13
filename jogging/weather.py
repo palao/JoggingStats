@@ -19,6 +19,7 @@
 #
 ########################################################################
 
+import datetime
 
 from django.conf import settings
 import requests
@@ -37,7 +38,11 @@ def meta_weather(location, date):
     url = META_WEATHER_HISTORIC_URL.format(
         location=location_id, year=date.year, month=date.month, day=date.day
     )
-    requests.get(url)
+    response = requests.get(url)
+    data = response.json()
+    for item in data:
+        if datetime.date.fromisoformat(item["applicable_date"]) == date:
+            return item["weather_state_name"]
 
 
 def _meta_weather_location_id(location):
