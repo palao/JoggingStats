@@ -32,6 +32,10 @@ META_WEATHER_HISTORIC_URL = (
 )
 
 
+def fake_weather(location, date):
+    """Dummy weather provider useful for testing."""
+    ...
+
 
 def meta_weather(location, date):
     location_id = _meta_weather_location_id(location)
