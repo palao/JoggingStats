@@ -96,7 +96,7 @@ class RegularUserTestCase(LiveServerTestCase):
         # to handle properly leading zeros:
         h, m, s = [float(_) for _ in resp_data["time"].split(":")]
         resp_data["time"] = str(timedelta(hours=h, minutes=m, seconds=s))
-        resp_data["weather"] = "?"
+        del resp_data["weather"] #  don't look at weather for now!
         self.assertEqual(resp_data, data)
 
     def check_get_run(self, resp, items):
@@ -113,7 +113,7 @@ class RegularUserTestCase(LiveServerTestCase):
             # to handle properly leading zeros:
             h, m, s = [float(_) for _ in run["time"].split(":")]
             run["time"] = str(timedelta(hours=h, minutes=m, seconds=s))
-            run["weather"] = "?"
+            del run["weather"] #  don't look at weather for now!
             results.append(run)
         for item in items:
             self.assertIn(item, results)
