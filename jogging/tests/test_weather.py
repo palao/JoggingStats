@@ -71,8 +71,11 @@ class MetaWeatherLocationIDTestCase(unittest.TestCase):
 
     def test_returns_None_if_unexpected_data_fetched(self, pget):
         mresponse = MagicMock()
-        mresponse.json.return_value = []
-        pget.return_value = mresponse
-        location_id = _meta_weather_location_id("Juan Francisco")
-        self.assertEqual(location_id, None)
+        values = ([], [{}])
+        for value in values:
+            with self.subTest(value=value):
+                mresponse.json.return_value = value
+                pget.return_value = mresponse
+                location_id = _meta_weather_location_id("Juan Francisco")
+                self.assertEqual(location_id, None)
 

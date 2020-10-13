@@ -37,8 +37,10 @@ def _meta_weather_location_id(location):
         params={"query": location}
     )
     data = response.json()
-    if data:
+    try:
         return data[0]["woeid"]
+    except (IndexError, KeyError):
+        pass
 
 
 def get_weather(location, date):
