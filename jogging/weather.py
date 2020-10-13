@@ -30,9 +30,9 @@ def get_weather(location, date):
     try:
         provider = globals()[settings.WEATHER["PROVIDER"]]
     except KeyError:
-        return None
+        pass
     try:
         return provider(location, date)
     except:
-        return None
+        pass
 
