@@ -30,9 +30,7 @@ from jogging.models import Run
 
 class RunTestCase(TestCase):
     def test_can_be_saved(self):
-        user = User(username="x")
-        user.set_password("2Sdx_")
-        user.save()
+        user = User.objects.create(username="x")
         run = Run(
             date=date.today(),
             distance=2.5,
@@ -48,3 +46,16 @@ class RunTestCase(TestCase):
         self.assertEqual(saved.time, timedelta(minutes=3, seconds=9))
         self.assertEqual(saved.location, "Lima")
         self.assertEqual(saved.owner, user)
+
+    def test_has_weather_field_set_from_get_weather(self):
+        user = User.objects.create(username="x")
+        run = Run(
+            date=date.today(),
+            distance=2.5,
+            time=timedelta(minutes=3, seconds=9),
+            location="Lima",
+            owner=user,
+        )
+        run.save()
+        self.assertEqual(run.weather, "?")
+        

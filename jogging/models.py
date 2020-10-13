@@ -31,3 +31,4 @@ class Run(models.Model):
     owner = models.ForeignKey(
         "auth.User", related_name="jogging", on_delete=models.CASCADE
     )
+    weather = models.CharField(default="?", max_length=128)
