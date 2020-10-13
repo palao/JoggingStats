@@ -25,7 +25,10 @@ import json
 from django.contrib.staticfiles.testing import LiveServerTestCase
 import requests
 
+from .utils import get_weather
+
 TODAY = date.today()
+
 
 class RegularUserTestCase(LiveServerTestCase):
     username = "bob"
@@ -35,13 +38,19 @@ class RegularUserTestCase(LiveServerTestCase):
             "date": str(TODAY),
             "distance": 11.3,
             "time": str(timedelta(minutes=58, seconds=24)),
-            "location": "Frankfurt am Main",
+            "location": "Frankfurt",
         },
         {
             "date": str(TODAY-timedelta(days=1)),
             "distance": 15.9,
             "time": str(timedelta(hours=1, minutes=22, seconds=47)),
-            "location": "Frankfurt am Main",
+            "location": "Frankfurt",
+        },
+        {
+            "date": str(TODAY-timedelta(days=2)),
+            "distance": 15.9,
+            "time": str(timedelta(hours=1, minutes=20, seconds=32)),
+            "location": "Frankfurt",
         },
     ]
     another_username = "mike"
@@ -93,6 +102,7 @@ class RegularUserTestCase(LiveServerTestCase):
         # to handle properly leading zeros:
         h, m, s = [float(_) for _ in resp_data["time"].split(":")]
         resp_data["time"] = str(timedelta(hours=h, minutes=m, seconds=s))
+        del resp_data["weather"] #  don't look at weather for now!
         self.assertEqual(resp_data, data)
 
     def check_get_run(self, resp, items):
@@ -109,6 +119,7 @@ class RegularUserTestCase(LiveServerTestCase):
             # to handle properly leading zeros:
             h, m, s = [float(_) for _ in run["time"].split(":")]
             run["time"] = str(timedelta(hours=h, minutes=m, seconds=s))
+            del run["weather"] #  don't look at weather for now!
             results.append(run)
         for item in items:
             self.assertIn(item, results)
@@ -133,7 +144,7 @@ class RegularUserTestCase(LiveServerTestCase):
             self.live_server_url+"/run/", auth=self.auth_data
         )        
         # and indeed he can retrieve the uploaded data!
-        self.check_get_run(get_resp, self.run_data)
+        self.check_get_run(get_resp, self.run_data[:2])
         # That makes him very happy: he can use that functionality to
         # analyze his progress.
 
@@ -151,3 +162,10 @@ class RegularUserTestCase(LiveServerTestCase):
         retrieved_runs = json.loads(get_resp.content)
         self.assertEqual(len(retrieved_runs), len(self.run_data))
         # he knows that because he knows how many runs he uploaded.
+        # BTW, he notices that there is some information in each item
+        # about weather. Is this real data, or only a placeholder?
+        for item in json.loads(get_resp.content):
+            self.assertNotEqual(item["weather"], "?")
+        # That is nice! The weather data is real! That will be very useful
+        # for him.
+        

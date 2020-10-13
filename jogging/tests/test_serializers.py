@@ -21,6 +21,7 @@
 
 import io
 from datetime import date, timedelta
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.contrib.auth.models import User
@@ -61,14 +62,16 @@ class NewAccountSerializerTestCase(TestCase):
 class RunSerializerTestCase(TestCase):
     def test_can_serialize_run(self):
         user = User.objects.create(username="pancho")
-        run = Run(
-            date=date.today(),
-            distance=9.2,
-            time=timedelta(hours=1, seconds=2),
-            location="Las Vegas",
-            owner=user,
-        )
-        run.save()
+        with patch("jogging.models.get_weather") as pget_weather:
+            pget_weather.return_value = "Cloudy"
+            run = Run(
+                date=date.today(),
+                distance=9.2,
+                time=timedelta(hours=1, seconds=2),
+                location="Las Vegas",
+                owner=user,
+            )
+            run.save()
         serializer = RunSerializer(run)
         self.assertEqual(
             serializer.data,
@@ -77,5 +80,6 @@ class RunSerializerTestCase(TestCase):
                 "distance": 9.2,
                 "time": "01:00:02",
                 "location": "Las Vegas",
+                "weather": "Cloudy",
             }
         )

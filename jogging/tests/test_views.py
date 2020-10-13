@@ -20,6 +20,7 @@
 ########################################################################
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.urls import reverse
 from django.contrib.auth.models import User
@@ -53,17 +54,19 @@ class RunViewSetTestCase(TestCase):
     def test_create_allowed_if_authenticated(self):
         user = User.objects.create(username="paul")
         factory = APIRequestFactory()
-        view = RunViewSet.as_view({'post': 'create'})
-        request = factory.post(
-            view,
-            {
-                "date": "2020-10-12", "distance": "2.6",
-                "time": "01:23:30", "location": "Rome"
-            },
-            format="json",
-        )
-        force_authenticate(request, user=user)
-        response = view(request)
+        with patch("jogging.models.get_weather") as pget_weather:
+            pget_weather.return_value = "Cloudy"
+            view = RunViewSet.as_view({'post': 'create'})
+            request = factory.post(
+                view,
+                {
+                    "date": "2020-10-12", "distance": "2.6",
+                    "time": "01:23:30", "location": "Rome"
+                },
+                format="json",
+            )
+            force_authenticate(request, user=user)
+            response = view(request)
         self.assertEqual(response.status_code, 201)
         
     def test_create_forbidden_if_not_logged_in(self):
@@ -82,23 +85,27 @@ class RunViewSetTestCase(TestCase):
 
     def test_list_fetches_data_from_user_logged_in(self):
         user = User.objects.create(username="sam")
-        run = Run.objects.create(
-            date="2020-10-13",
-            distance="5.6",
-            time=timedelta(minutes=53, seconds=22),
-            location="Porto",
-            owner=user,
-        )
+        with patch("jogging.models.get_weather") as pget_weather:
+            pget_weather.return_value = "Cloudy"
+            run = Run.objects.create(
+                date="2020-10-13",
+                distance="5.6",
+                time=timedelta(minutes=53, seconds=22),
+                location="Porto",
+                owner=user,
+            )
         serializer = RunSerializer([run], many=True)
         expected = JSONRenderer().render(serializer.data)
         other_user = User.objects.create(username="dave")
-        other_run = Run.objects.create(
-            date="2020-09-23",
-            distance="4.9",
-            time=timedelta(minutes=30, seconds=8),
-            location="Casablanca",
-            owner=other_user,
-        )
+        with patch("jogging.models.get_weather") as pget_weather:
+            pget_weather.return_value = "Cloudy"
+            other_run = Run.objects.create(
+                date="2020-09-23",
+                distance="4.9",
+                time=timedelta(minutes=30, seconds=8),
+                location="Casablanca",
+                owner=other_user,
+            )
         factory = APIRequestFactory()
         view = RunViewSet.as_view({'get': 'list'})
         request = factory.get("/run/")

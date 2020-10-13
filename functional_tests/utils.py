@@ -19,24 +19,24 @@
 #
 ########################################################################
 
+import json
 
-from django.db import models
+import requests
+from django.conf import settings
 
-from .weather import get_weather
+
+OWM_URL =  "http://api.openweathermap.org/data/2.5/weather"
 
 
-class Run(models.Model):
-    date = models.DateField()
-    distance = models.FloatField()
-    time = models.DurationField()
-    location = models.CharField(max_length=256)
-    owner = models.ForeignKey(
-        "auth.User", related_name="jogging", on_delete=models.CASCADE
-    )
-    weather = models.CharField(default="?", max_length=128)
+def get_weather_openweathermap(location):
+    key = settings.WEATHER["APPID"]
+    resp = requests.get(OWM_URL, data={"q": location, "appid": key})
+    result = json.loads(resp.content)
+    try:
+        weather = result["weather"]["main"]
+    except KeyError:
+        weather = "?"
+    return weather
 
-    def save(self, *args, **kwargs):
-        weather = get_weather(self.location, self.date)
-        if weather:
-            self.weather = weather
-        super().save(*args, **kwargs)
+
+get_weather = get_weather_openweathermap
