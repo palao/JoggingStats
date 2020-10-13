@@ -26,7 +26,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.contrib.auth.models import User
 
-from jogging.models import Run
+from jogging.models import Run, WeeklyReport
 
 
 @patch("jogging.models.get_weather")
@@ -61,4 +61,21 @@ class RunTestCase(TestCase):
         pget_weather.return_value = None
         self.run.save()
         self.assertEqual(self.run.weather, "?")
+        
+
+class WeeklySummaryTestCase(TestCase):
+    def test_can_be_saved(self):
+        user = User.objects.create(username="sam")
+        r = WeeklyReport(
+            week_start=date(2020,10,5),
+            total_distance_km=23.5,
+            average_speed_kmph=12,
+            owner=user
+        )
+        r.save()
+        saved = WeeklyReport.objects.first()
+        self.assertEqual(saved.week_start, date(2020,10,5))
+        self.assertEqual(saved.total_distance_km, 23.5)
+        self.assertEqual(saved.average_speed_kmph, 12)
+        self.assertEqual(saved.owner, user)
         

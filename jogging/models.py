@@ -40,3 +40,14 @@ class Run(models.Model):
         if weather:
             self.weather = weather
         super().save(*args, **kwargs)
+
+
+class WeeklyReport(models.Model):
+    week_start = models.DateField()
+    total_distance_km = models.FloatField()
+    average_speed_kmph = models.FloatField()
+    owner = models.ForeignKey(
+        "auth.User", related_name="%(app_label)s_%(class)s",
+        on_delete=models.CASCADE
+    )
+    
