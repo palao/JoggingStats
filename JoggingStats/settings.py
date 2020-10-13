@@ -122,5 +122,5 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 WEATHER = {
-    "APPID": "76589eb0f5c5fd330a8adfda4b6a057e"
+    "PROVIDER": "meta_weather",
 }
