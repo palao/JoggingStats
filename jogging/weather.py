@@ -26,9 +26,18 @@ import requests
 
 META_WEATHER_BASE_URL = "https://www.metaweather.com/api/"
 META_WEATHER_LOCATION_SEARCH_URL = META_WEATHER_BASE_URL + "location/search/"
+META_WEATHER_HISTORIC_URL = (
+    META_WEATHER_BASE_URL + "location/{location}/{year}/{month}/{day}/"
+)
 
 
-meta_weather = None
+
+def meta_weather(location, date):
+    location_id = _meta_weather_location_id(location)
+    url = META_WEATHER_HISTORIC_URL.format(
+        location=location_id, year=date.year, month=date.month, day=date.day
+    )
+    requests.get(url)
 
 
 def _meta_weather_location_id(location):

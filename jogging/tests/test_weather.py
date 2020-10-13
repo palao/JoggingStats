@@ -22,10 +22,11 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import json
+from datetime import date
 
 from django.conf import settings
 
-from jogging.weather import get_weather, _meta_weather_location_id
+from jogging.weather import get_weather, _meta_weather_location_id, meta_weather
 
 
 class UnknownError(Exception):
@@ -79,3 +80,13 @@ class MetaWeatherLocationIDTestCase(unittest.TestCase):
                 location_id = _meta_weather_location_id("Juan Francisco")
                 self.assertEqual(location_id, None)
 
+
+@patch("jogging.weather._meta_weather_location_id")
+@patch("jogging.weather.requests.get")
+class MetaWeatherTestCase(unittest.TestCase):
+    def test_called_with_correct_url(self, pget, pmeta_weather_location_id):
+        pmeta_weather_location_id.return_value = 23
+        meta_weather("Mandril", date(2020, 7, 15))
+        pget.assert_called_once_with(
+            "https://www.metaweather.com/api/location/23/2020/7/15/",
+        )
