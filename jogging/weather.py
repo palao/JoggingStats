@@ -21,9 +21,23 @@
 
 
 from django.conf import settings
+import requests
+
+
+META_WEATHER_BASE_URL = "https://www.metaweather.com/api/"
+META_WEATHER_LOCATION_SEARCH_URL = META_WEATHER_BASE_URL + "location/search/"
 
 
 meta_weather = None
+
+
+def _meta_weather_location_id(location):
+    response = requests.get(
+        META_WEATHER_LOCATION_SEARCH_URL,
+        params={"query": location}
+    )
+    data = response.json()
+    return data[0]["woeid"]
 
 
 def get_weather(location, date):
