@@ -42,4 +42,4 @@ class NewAccountSerializer(serializers.ModelSerializer):
 class RunSerializer(serializers.ModelSerializer):
     class Meta:
         model = Run
-        fields = ("date", "distance", "time", "location")
+        fields = ("date", "distance", "time", "location", "weather")

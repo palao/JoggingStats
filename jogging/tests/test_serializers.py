@@ -80,5 +80,6 @@ class RunSerializerTestCase(TestCase):
                 "distance": 9.2,
                 "time": "01:00:02",
                 "location": "Las Vegas",
+                "weather": "Cloudy",
             }
         )
