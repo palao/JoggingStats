@@ -46,6 +46,12 @@ class RegularUserTestCase(LiveServerTestCase):
             "time": str(timedelta(hours=1, minutes=22, seconds=47)),
             "location": "Frankfurt",
         },
+        {
+            "date": str(TODAY-timedelta(days=2)),
+            "distance": 15.9,
+            "time": str(timedelta(hours=1, minutes=20, seconds=32)),
+            "location": "Frankfurt",
+        },
     ]
     another_username = "mike"
     another_password = "ju=988X"
@@ -138,7 +144,7 @@ class RegularUserTestCase(LiveServerTestCase):
             self.live_server_url+"/run/", auth=self.auth_data
         )        
         # and indeed he can retrieve the uploaded data!
-        self.check_get_run(get_resp, self.run_data)
+        self.check_get_run(get_resp, self.run_data[:2])
         # That makes him very happy: he can use that functionality to
         # analyze his progress.
 
