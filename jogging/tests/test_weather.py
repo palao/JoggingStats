@@ -27,6 +27,11 @@ from django.conf import settings
 from jogging.weather import get_weather
 
 
+class UnknownError(Exception):
+    ...
+
+
+
 @patch("jogging.weather.meta_weather")
 class GetWeatherTestCase(unittest.TestCase):
     def test_calls_right_provider_instance(self, pmeta_weather):
@@ -35,7 +40,14 @@ class GetWeatherTestCase(unittest.TestCase):
         pmeta_weather.assert_called_once_with("Here", "2020/09/17")
         self.assertEqual(pmeta_weather.return_value, weather)
         
-    def test_unknown_provider_returns_None(self, pmeta_weather):
+    def test_returns_None_unknown_provider(self, pmeta_weather):
         settings.WEATHER = {"PROVIDER": "unkwnown_wheather_provider"}
         weather = get_weather("There", "2020/09/13")
         self.assertIs(weather, None)
+
+    def test_returns_None_if_error_in_provider(self, pmeta_weather):
+        settings.WEATHER = {"PROVIDER": "meta_weather"}
+        pmeta_weather.side_effect = UnknownError
+        weather = get_weather("Wandalucia", "2010/02/22")
+        self.assertIs(weather, None)
+        
