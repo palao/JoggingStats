@@ -98,4 +98,24 @@ class WeeklySummaryTestCase(TestCase):
                     owner=user
                 )
         self.assertEqual(WeeklyReport.objects.count(), 1)
+
+    def test_two_owners_can_have_entries_on_same_date(self):
+        user1 = User.objects.create(username="sam")
+        r1 = WeeklyReport.objects.create(
+            week_start=date(2020,10,5),
+            total_distance_km=23.5,
+            average_speed_kmph=12,
+            owner=user1
+        )
+        user2 = User.objects.create(username="cp")
+        r2 = WeeklyReport.objects.create(
+            week_start=date(2020,10,5),
+            total_distance_km=25.2,
+            average_speed_kmph=12.9,
+            owner=user2
+        )
+        self.assertEqual(WeeklyReport.objects.count(), 2)
+
+
+        
         
