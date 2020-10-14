@@ -66,66 +66,55 @@ class RunTestCase(TestCase):
         
 
 class WeeklySummaryTestCase(TestCase):
-    def test_can_be_saved(self):
-        user = User.objects.create(username="sam")
-        r = WeeklyReport(
+    def setUp(self):
+        self.user1 = User.objects.create(username="sam")
+        self.user2 = User.objects.create(username="cp")
+        self.r1 = WeeklyReport(
             week_start=date(2020,10,5),
             total_distance_km=23.5,
             average_speed_kmph=12,
-            owner=user
+            owner=self.user1
         )
-        r.save()
+        
+    def test_can_be_saved(self):
+        self.r1.save()
         saved = WeeklyReport.objects.first()
         self.assertEqual(saved.week_start, date(2020,10,5))
         self.assertEqual(saved.total_distance_km, 23.5)
         self.assertEqual(saved.average_speed_kmph, 12)
-        self.assertEqual(saved.owner, user)
+        self.assertEqual(saved.owner, self.user1)
 
     def test_has_default_values(self):
-        user = User.objects.create(username="sam")
         r = WeeklyReport(
             week_start=date(2020,9,28),
-            owner=user
+            owner=self.user1
         )
         r.save()
         saved = WeeklyReport.objects.first()
         self.assertEqual(saved.week_start, date(2020,9,28))
         self.assertEqual(saved.total_distance_km, 0)
         self.assertEqual(saved.average_speed_kmph, 0)
-        self.assertEqual(saved.owner, user)
+        self.assertEqual(saved.owner, self.user1)
         
     def test_one_owner_can_only_have_one_entry_per_date(self):
-        user = User.objects.create(username="sam")
-        r1 = WeeklyReport.objects.create(
-            week_start=date(2020,10,5),
-            total_distance_km=23.5,
-            average_speed_kmph=12,
-            owner=user
-        )
+        self.r1.save()
         with transaction.atomic():
             with self.assertRaises(IntegrityError):
                 r2 = WeeklyReport.objects.create(
                     week_start=date(2020,10,5),
                     total_distance_km=25.2,
                     average_speed_kmph=12.9,
-                    owner=user
+                    owner=self.user1
                 )
         self.assertEqual(WeeklyReport.objects.count(), 1)
 
     def test_two_owners_can_have_entries_on_same_date(self):
-        user1 = User.objects.create(username="sam")
-        r1 = WeeklyReport.objects.create(
-            week_start=date(2020,10,5),
-            total_distance_km=23.5,
-            average_speed_kmph=12,
-            owner=user1
-        )
-        user2 = User.objects.create(username="cp")
+        self.r1.save()
         r2 = WeeklyReport.objects.create(
             week_start=date(2020,10,5),
             total_distance_km=25.2,
             average_speed_kmph=12.9,
-            owner=user2
+            owner=self.user2
         )
         self.assertEqual(WeeklyReport.objects.count(), 2)
         
