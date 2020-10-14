@@ -84,6 +84,13 @@ class WeeklySummaryTestCase(TestCase):
         self.assertEqual(saved.average_speed_kmph, 12)
         self.assertEqual(saved.owner, self.user1)
 
+    def test_save_fixes_date(self):
+        r = WeeklyReport.objects.create(
+            week_start=date(2020,10,14),
+            owner=self.user1
+        )
+        self.assertEqual(r.week_start, date(2020,10,12))
+        
     def test_has_default_values(self):
         r = WeeklyReport(
             week_start=date(2020,9,28),

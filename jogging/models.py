@@ -20,9 +20,14 @@
 ########################################################################
 
 
+from datetime import timedelta
+
 from django.db import models
 
 from .weather import get_weather
+
+
+ONEDAY = timedelta(days=1)
 
 
 class Run(models.Model):
@@ -58,3 +63,8 @@ class WeeklyReport(models.Model):
                 name="one_report_per_week_and_owner"
             )
         ]
+
+    def save(self, *args, **kwargs):
+        d = self.week_start - (self.week_start.weekday())*ONEDAY
+        self.week_start = d
+        super().save(*args, **kwargs)
