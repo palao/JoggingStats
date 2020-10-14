@@ -50,4 +50,11 @@ class WeeklyReport(models.Model):
         "auth.User", related_name="%(app_label)s_%(class)s",
         on_delete=models.CASCADE
     )
-    
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["week_start", "owner"],
+                name="one_report_per_week_and_owner"
+            )
+        ]

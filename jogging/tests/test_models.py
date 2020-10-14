@@ -25,6 +25,8 @@ from unittest.mock import patch
 
 from django.test import TestCase
 from django.contrib.auth.models import User
+from django.db.utils import IntegrityError
+from django.db import transaction
 
 from jogging.models import Run, WeeklyReport
 
@@ -78,4 +80,22 @@ class WeeklySummaryTestCase(TestCase):
         self.assertEqual(saved.total_distance_km, 23.5)
         self.assertEqual(saved.average_speed_kmph, 12)
         self.assertEqual(saved.owner, user)
+        
+    def test_one_owner_can_only_have_one_entry_per_date(self):
+        user = User.objects.create(username="sam")
+        r1 = WeeklyReport.objects.create(
+            week_start=date(2020,10,5),
+            total_distance_km=23.5,
+            average_speed_kmph=12,
+            owner=user
+        )
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                r2 = WeeklyReport.objects.create(
+                    week_start=date(2020,10,5),
+                    total_distance_km=25.2,
+                    average_speed_kmph=12.9,
+                    owner=user
+                )
+        self.assertEqual(WeeklyReport.objects.count(), 1)
         
