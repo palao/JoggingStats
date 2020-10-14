@@ -125,5 +125,7 @@ class WeeklySummaryTestCase(TestCase):
         )
         self.assertEqual(WeeklyReport.objects.count(), 2)
         
-        
+    def test_has_week_property(self):
+        self.r1.save()
+        self.assertEqual(self.r1.week, "2020-10-05 to 2020-10-11")
         

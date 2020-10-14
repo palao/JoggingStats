@@ -68,3 +68,8 @@ class WeeklyReport(models.Model):
         d = self.week_start - (self.week_start.weekday())*ONEDAY
         self.week_start = d
         super().save(*args, **kwargs)
+
+    @property
+    def week(self):
+        end_of_week = self.week_start + 6*ONEDAY
+        return f"{self.week_start} to {end_of_week}"
