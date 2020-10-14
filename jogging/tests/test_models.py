@@ -63,7 +63,7 @@ class RunTestCase(TestCase):
         pget_weather.return_value = None
         self.run.save()
         self.assertEqual(self.run.weather, "?")
-        
+
 
 class WeeklySummaryTestCase(TestCase):
     def setUp(self):
