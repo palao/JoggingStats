@@ -44,8 +44,8 @@ class Run(models.Model):
 
 class WeeklyReport(models.Model):
     week_start = models.DateField()
-    total_distance_km = models.FloatField()
-    average_speed_kmph = models.FloatField()
+    total_distance_km = models.FloatField(default=0)
+    average_speed_kmph = models.FloatField(default=0)
     owner = models.ForeignKey(
         "auth.User", related_name="%(app_label)s_%(class)s",
         on_delete=models.CASCADE
