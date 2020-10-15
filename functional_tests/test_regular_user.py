@@ -114,6 +114,9 @@ class RegularUserTestCase(LiveServerTestCase):
         self.assertEqual(resp.reason, "OK")
         # Now, he sees in the response the data previously posted:
         posted_runs = json.loads(resp.content)
+        if len(items) == 1:
+            # in this case, only 1 response is expected.
+            posted_runs = [posted_runs]
         results = []
         for run in posted_runs:
             # to handle properly leading zeros:
@@ -168,4 +171,60 @@ class RegularUserTestCase(LiveServerTestCase):
             self.assertNotEqual(item["weather"], "?")
         # That is nice! The weather data is real! That will be very useful
         # for him.
+        
+    def test_can_update_own_data(self):
+        # after posting some data:
+        for run_data in self.run_data:
+            post_resp = requests.post(
+                self.live_server_url+"/run/", data=run_data, auth=self.auth_data
+            )
+        # bob realized that he typed a wrong distance on the first record.
+        # He tries to fix that with a PATCH:
+        patch_resp = requests.patch(
+            self.live_server_url+"/run/12/",
+            data={"distance": 10.3}, auth=self.auth_data
+        )
+        # and he sees that it is updated properly:
+        expected_item = self.run_data[0].copy()
+        expected_item["distance"] = 10.3
+        self.check_get_run(patch_resp, [expected_item])
+        # and he also realized that another entry is completely wrong,
+        # so he fixes it:
+        item = {
+            "date": str(TODAY-timedelta(days=2)),
+            "distance": 10.7,
+            "time": str(timedelta(hours=1, minutes=6, seconds=22)),
+            "location": "Rome",
+        }
+        put_resp = requests.put(
+            self.live_server_url+"/run/13/",
+            data=item, auth=self.auth_data
+        )
+        self.check_get_run(put_resp, [item])
+        # Sweet!
+        
+    def test_cannot_update_run_records_from_other_users(self):
+        # Bob wants to fix an entry in his statistics that is wrong.
+        # The location must be changed:
+        patch_resp = requests.patch(
+            self.live_server_url+"/run/1/",
+            data={"location": "Sevilla"}, auth=self.auth_data
+        )
+        # but he got a 404:
+        self.assertEqual(patch_resp.status_code, 404)
+        # Out of curiosity. Bob wonders if he can change a complete record
+        # not belonging to him...
+        item = {
+            "date": str(TODAY-timedelta(days=2)),
+            "distance": 10.7,
+            "time": str(timedelta(hours=1, minutes=6, seconds=22)),
+            "location": "Rome",
+        }
+        put_resp = requests.put(
+            self.live_server_url+"/run/2/",
+            data=item, auth=self.auth_data
+        )
+        # but he cannot, as expected:
+        self.assertEqual(put_resp.status_code, 404)
+        
         
