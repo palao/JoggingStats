@@ -19,15 +19,31 @@
 #
 ########################################################################
 
-from django.apps import AppConfig
-from django.db.models.signals import post_save
+from unittest.mock import patch, MagicMock
 
-from .signals import run_save_handler
+from django.test import TestCase
+
+from jogging.apps import JoggingConfig
+from jogging.signals import run_save_handler
 
 
-class JoggingConfig(AppConfig):
-    name = 'jogging'
+@patch("jogging.apps.post_save")
+@patch("jogging.apps.AppConfig")
+class JoggingConfigTestCase(TestCase):
+    """This is a very implementation dependent test case because
+    it must fulfill the Django way to register signals."""
+    
+    def test_ready_method_registers_handler_for_post_save(
+            self, pAppConfig, ppost_save):
+        JoggingConfig.path = "."
+        conf = JoggingConfig("jogging", "jogging.apps")
+        conf.get_model = MagicMock()
+        conf.ready()
+        ppost_save.connect.assert_called_once_with(
+            run_save_handler, sender=conf.get_model.return_value
+        )
+        conf.get_model.assert_called_once_with("Run")
+        
 
-    def ready(self):
-        RunModel = self.get_model("Run")
-        post_save.connect(run_save_handler, sender=RunModel)
+
+
