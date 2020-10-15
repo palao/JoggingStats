@@ -19,7 +19,7 @@
 #
 ########################################################################
 
-from datetime import timedelta
+from datetime import timedelta, date
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -88,7 +88,7 @@ class RunViewSetTestCase(TestCase):
         with patch("jogging.models.get_weather") as pget_weather:
             pget_weather.return_value = "Cloudy"
             run = Run.objects.create(
-                date="2020-10-13",
+                date=date(2020, 10, 13),
                 distance="5.6",
                 time=timedelta(minutes=53, seconds=22),
                 location="Porto",
@@ -100,7 +100,7 @@ class RunViewSetTestCase(TestCase):
         with patch("jogging.models.get_weather") as pget_weather:
             pget_weather.return_value = "Cloudy"
             other_run = Run.objects.create(
-                date="2020-09-23",
+                date=date(2020, 9,23),
                 distance="4.9",
                 time=timedelta(minutes=30, seconds=8),
                 location="Casablanca",

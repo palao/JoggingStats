@@ -95,8 +95,9 @@ class StatsForReportTestCase(TestCase):
 @patch("jogging.signals.run_stats_for_report")
 class RunSaveHandler(TestCase):
     def test_calls_run_stats_for_report(self, prun_stats_for_report):
-        user = User.objects.create(username="yt")        
-        run = Run.objects.create(
+        user = User.objects.create(username="yt")
+        # I don't call "create" to avoid calling the handler implicitly:
+        run = Run(
             owner=user,
             date=datetime.date(2020, 8, 11),
             distance=3,
