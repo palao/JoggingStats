@@ -27,8 +27,10 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.parsers import JSONParser
 
-from jogging.serializers import NewAccountSerializer, RunSerializer
-from jogging.models import Run
+from jogging.serializers import (
+    NewAccountSerializer, RunSerializer, WeeklyReportSerializer,
+)
+from jogging.models import Run, WeeklyReport
 
 
 class NewAccountSerializerTestCase(TestCase):
@@ -81,5 +83,27 @@ class RunSerializerTestCase(TestCase):
                 "time": "01:00:02",
                 "location": "Las Vegas",
                 "weather": "Cloudy",
+            }
+        )
+
+
+class WeeklyReportsSerializerTestCase(TestCase):
+    def test_can_serialize_reports(self):
+        user = User.objects.create(username="pancho")
+        test_date = date(2020, 10, 12)
+        report = WeeklyReport.objects.create(
+            week_start=test_date,
+            total_distance_km=9.2,
+            average_speed_kmph=13.4,
+            owner=user,
+        )
+        serializer = WeeklyReportSerializer(report)
+        week_end = date(2020, 10, 12)+timedelta(days=6)
+        self.assertEqual(
+            serializer.data,
+            {
+                "week": f"{test_date} to {week_end}",
+                "total_distance_km": 9.2,
+                "average_speed_kmph": 13.4,
             }
         )

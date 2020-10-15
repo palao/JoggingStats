@@ -22,7 +22,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
-from jogging.models import Run
+from jogging.models import Run, WeeklyReport
 
 
 class NewAccountSerializer(serializers.ModelSerializer):
@@ -43,3 +43,10 @@ class RunSerializer(serializers.ModelSerializer):
     class Meta:
         model = Run
         fields = ("date", "distance", "time", "location", "weather")
+
+
+class WeeklyReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WeeklyReport
+        fields = ("week", "total_distance_km", "average_speed_kmph")
+        
