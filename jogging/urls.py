@@ -28,6 +28,8 @@ from jogging import views
 
 router = DefaultRouter()
 router.register(r"run", views.RunViewSet, basename="run")
+router.register(
+    r"weekly-reports", views.WeeklyReportViewSet, basename="weekly-reports")
 
 
 urlpatterns = [
