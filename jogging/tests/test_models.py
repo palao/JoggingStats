@@ -25,8 +25,10 @@ from unittest.mock import patch
 
 from django.test import TestCase
 from django.contrib.auth.models import User
+from django.db.utils import IntegrityError
+from django.db import transaction
 
-from jogging.models import Run
+from jogging.models import Run, WeeklyReport
 
 
 @patch("jogging.models.get_weather")
@@ -61,4 +63,69 @@ class RunTestCase(TestCase):
         pget_weather.return_value = None
         self.run.save()
         self.assertEqual(self.run.weather, "?")
+
+
+class WeeklySummaryTestCase(TestCase):
+    def setUp(self):
+        self.user1 = User.objects.create(username="sam")
+        self.user2 = User.objects.create(username="cp")
+        self.r1 = WeeklyReport(
+            week_start=date(2020,10,5),
+            total_distance_km=23.5,
+            average_speed_kmph=12,
+            owner=self.user1
+        )
+        
+    def test_can_be_saved(self):
+        self.r1.save()
+        saved = WeeklyReport.objects.first()
+        self.assertEqual(saved.week_start, date(2020,10,5))
+        self.assertEqual(saved.total_distance_km, 23.5)
+        self.assertEqual(saved.average_speed_kmph, 12)
+        self.assertEqual(saved.owner, self.user1)
+
+    def test_save_fixes_date(self):
+        r = WeeklyReport.objects.create(
+            week_start=date(2020,10,14),
+            owner=self.user1
+        )
+        self.assertEqual(r.week_start, date(2020,10,12))
+        
+    def test_has_default_values(self):
+        r = WeeklyReport(
+            week_start=date(2020,9,28),
+            owner=self.user1
+        )
+        r.save()
+        saved = WeeklyReport.objects.first()
+        self.assertEqual(saved.week_start, date(2020,9,28))
+        self.assertEqual(saved.total_distance_km, 0)
+        self.assertEqual(saved.average_speed_kmph, 0)
+        self.assertEqual(saved.owner, self.user1)
+        
+    def test_one_owner_can_only_have_one_entry_per_date(self):
+        self.r1.save()
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                r2 = WeeklyReport.objects.create(
+                    week_start=date(2020,10,5),
+                    total_distance_km=25.2,
+                    average_speed_kmph=12.9,
+                    owner=self.user1
+                )
+        self.assertEqual(WeeklyReport.objects.count(), 1)
+
+    def test_two_owners_can_have_entries_on_same_date(self):
+        self.r1.save()
+        r2 = WeeklyReport.objects.create(
+            week_start=date(2020,10,5),
+            total_distance_km=25.2,
+            average_speed_kmph=12.9,
+            owner=self.user2
+        )
+        self.assertEqual(WeeklyReport.objects.count(), 2)
+        
+    def test_has_week_property(self):
+        self.r1.save()
+        self.assertEqual(self.r1.week, "2020-10-05 to 2020-10-11")
         

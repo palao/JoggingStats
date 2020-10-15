@@ -19,7 +19,7 @@
 #
 ########################################################################
 
-from datetime import timedelta
+from datetime import timedelta, date
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -28,9 +28,9 @@ from django.test import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.renderers import JSONRenderer
 
-from jogging.views import NewAccount, RunViewSet
-from jogging.models import Run
-from jogging.serializers import RunSerializer
+from jogging.views import NewAccount, RunViewSet, WeeklyReportViewSet
+from jogging.models import Run, WeeklyReport
+from jogging.serializers import RunSerializer, WeeklyReportSerializer
 
 
 class NewAccountTestCase(TestCase):
@@ -88,7 +88,7 @@ class RunViewSetTestCase(TestCase):
         with patch("jogging.models.get_weather") as pget_weather:
             pget_weather.return_value = "Cloudy"
             run = Run.objects.create(
-                date="2020-10-13",
+                date=date(2020, 10, 13),
                 distance="5.6",
                 time=timedelta(minutes=53, seconds=22),
                 location="Porto",
@@ -100,7 +100,7 @@ class RunViewSetTestCase(TestCase):
         with patch("jogging.models.get_weather") as pget_weather:
             pget_weather.return_value = "Cloudy"
             other_run = Run.objects.create(
-                date="2020-09-23",
+                date=date(2020, 9,23),
                 distance="4.9",
                 time=timedelta(minutes=30, seconds=8),
                 location="Casablanca",
@@ -113,3 +113,85 @@ class RunViewSetTestCase(TestCase):
         response = view(request)
         response.render()
         self.assertEqual(response.content, expected)
+
+
+class WeeklyReportViewSetTestCase(TestCase):
+    def test_list_forbidden_if_not_logged_in(self):
+        factory = APIRequestFactory()
+        view = WeeklyReportViewSet.as_view({'get': 'list'})
+        request = factory.get("/weekly-reports/")
+        response = view(request)
+        self.assertEqual(response.status_code, 403)
+        
+    def test_list_fetches_data_from_user_logged_in(self):
+        factory = APIRequestFactory()
+        user1 = User.objects.create(username="mandri")
+        user2 = User.objects.create(username="winn")
+        test_dates = [
+            (date(2020, 10, 12), date(2020, 10, 18)),
+            (date(2020, 10, 5), date(2020, 10, 11)),
+        ]
+        test_distances = [13.5, 50.4]
+        test_speeds = [20.0, 12.4]
+        reports = [
+            WeeklyReport.objects.create(
+                week_start=rdate[0],
+                total_distance_km=rdist,
+                average_speed_kmph=rspeed,
+                owner=user1,
+            ) for (rdate, rdist, rspeed) in zip(
+                test_dates, test_distances, test_speeds)
+        ] + [
+            WeeklyReport.objects.create(
+                week_start=test_dates[0][0],
+                total_distance_km=sum(test_distances)/2,
+                average_speed_kmph=sum(test_speeds)/2,
+                owner=user2,
+            )
+        ]
+        serializer = WeeklyReportSerializer(reports[:2], many=True)
+        expected = JSONRenderer().render(serializer.data)
+        view = WeeklyReportViewSet.as_view({'get': 'list'})
+        request = factory.get("/weekly-reports/")
+        force_authenticate(request, user=user1)
+        response = view(request)
+        response.render()
+        self.assertEqual(response.content, expected)
+        
+    def test_cannot_create(self):
+        factory = APIRequestFactory()
+        user = User.objects.create(username="mandri")
+        view = WeeklyReportViewSet.as_view({'post': 'create'})
+        request = factory.post(
+            view,
+            {
+                "week": "2020-10-12 to 2020-10-18",
+                "total_distance_km": "2.6",
+                "average_speed_kmph": "12.3",
+            },
+            format="json",
+        )
+        force_authenticate(request, user=user)
+        with self.assertRaises(AttributeError):
+            response = view(request)
+
+    def test_cannot_update(self):
+        user = User.objects.create(username="mandri")
+        WeeklyReport.objects.create(
+            week_start=date(2020,10,5),
+            total_distance_km=20,
+            average_speed_kmph=10,
+            owner=user,
+        )
+        factory = APIRequestFactory()
+        view = WeeklyReportViewSet.as_view({'put': 'update'})
+        request = factory.put(
+            "/weekly-reports/1/",
+            {
+                "total_distance_km": "26",
+            },
+            format="json",
+        )
+        force_authenticate(request, user=user)
+        with self.assertRaises(AttributeError):
+            response = view(request)

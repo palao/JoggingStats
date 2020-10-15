@@ -26,7 +26,9 @@ from datetime import date
 
 from django.conf import settings
 
-from jogging.weather import get_weather, _meta_weather_location_id, meta_weather
+from jogging.weather import (
+    get_weather, _meta_weather_location_id, meta_weather, fake_weather,
+)
 
 
 FICTICIOUS_METAWEATHER_DATA = [
@@ -153,3 +155,13 @@ class MetaWeatherTestCase(unittest.TestCase):
         pget.return_value = mresponse
         weather = meta_weather("Madrid", date(2020, 10, 13))
         self.assertEqual(weather, "Clear")
+
+
+class FakeWeatherTestCase(unittest.TestCase):
+    def test_returns_always_None(self):
+        locations = ("Werlin", "Mondon", "Bharis")
+        dates = (date(2020, 7, 15), date(2000, 3, 22), date(2019, 12, 24))
+        for loc, d in zip(locations, dates):
+            with self.subTest(location=loc, date=d):
+                self.assertEqual(fake_weather(loc, d), "fake")
+

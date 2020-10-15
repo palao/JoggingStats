@@ -19,20 +19,29 @@
 #
 ########################################################################
 
+from datetime import timedelta
 
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-
-from jogging import views
+from django.db.models import Sum
 
 
-router = DefaultRouter()
-router.register(r"run", views.RunViewSet, basename="run")
-router.register(
-    r"weekly-reports", views.WeeklyReportViewSet, basename="weekly-reports")
+def run_stats_for_report(model, user, start_date, end_date):
+    return model.objects.filter(
+        date__range=(start_date, end_date)
+    ).filter(
+        owner=user
+    ).aggregate(Sum("distance"), Sum("time"))
 
-
-urlpatterns = [
-    path("new-account/", views.NewAccount.as_view(), name="new-account"),
-    path("", include(router.urls)),
-]
+    
+def run_save_handler(sender, instance, **kwargs):
+    from jogging.models import WeeklyReport
+    start_date = instance.date-timedelta(days=instance.date.weekday())
+    end_date = start_date+timedelta(days=6)
+    wr, created = WeeklyReport.objects.get_or_create(
+        week_start=start_date,
+        owner=instance.owner
+    )
+    stats = run_stats_for_report(sender, instance.owner, start_date, end_date)
+    wr.total_distance_km = stats["distance__sum"]
+    seconds = stats["time__sum"].seconds
+    wr.average_speed_kmph = stats["distance__sum"]*3600/seconds
+    wr.save()

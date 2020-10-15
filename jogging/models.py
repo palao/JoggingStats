@@ -20,9 +20,14 @@
 ########################################################################
 
 
+from datetime import timedelta
+
 from django.db import models
 
 from .weather import get_weather
+
+
+ONEDAY = timedelta(days=1)
 
 
 class Run(models.Model):
@@ -40,3 +45,31 @@ class Run(models.Model):
         if weather:
             self.weather = weather
         super().save(*args, **kwargs)
+
+
+class WeeklyReport(models.Model):
+    week_start = models.DateField()
+    total_distance_km = models.FloatField(default=0)
+    average_speed_kmph = models.FloatField(default=0)
+    owner = models.ForeignKey(
+        "auth.User", related_name="%(app_label)s_%(class)s",
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["week_start", "owner"],
+                name="one_report_per_week_and_owner"
+            )
+        ]
+
+    def save(self, *args, **kwargs):
+        d = self.week_start - (self.week_start.weekday())*ONEDAY
+        self.week_start = d
+        super().save(*args, **kwargs)
+
+    @property
+    def week(self):
+        end_of_week = self.week_start + 6*ONEDAY
+        return f"{self.week_start} to {end_of_week}"

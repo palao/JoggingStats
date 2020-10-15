@@ -24,8 +24,10 @@ from rest_framework import viewsets
 from rest_framework import permissions
 from django.contrib.auth.models import User
 
-from .serializers import NewAccountSerializer, RunSerializer
-from .models import Run
+from .serializers import (
+    NewAccountSerializer, RunSerializer, WeeklyReportSerializer,
+)
+from .models import Run, WeeklyReport
 from .permissions import IsOwner
 
 class NewAccount(generics.CreateAPIView):
@@ -42,3 +44,12 @@ class RunViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+
+class WeeklyReportViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = WeeklyReportSerializer
+    permission_classes = (permissions.IsAuthenticated, )
+
+    def get_queryset(self):
+        return WeeklyReport.objects.filter(owner=self.request.user)
+

@@ -20,12 +20,14 @@
 ########################################################################
 
 import json
+from datetime import date, timedelta
 
 import requests
 from django.conf import settings
 
 
 OWM_URL =  "http://api.openweathermap.org/data/2.5/weather"
+ONEDAY = timedelta(days=1)
 
 
 def get_weather_openweathermap(location):
@@ -40,3 +42,11 @@ def get_weather_openweathermap(location):
 
 
 get_weather = get_weather_openweathermap
+
+
+def current_week():
+    today = date.today()
+    start = today - ONEDAY*today.weekday()
+    end = today + ONEDAY*(6-today.weekday())
+    return (start, end)
+

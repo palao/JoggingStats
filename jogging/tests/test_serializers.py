@@ -27,8 +27,10 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.parsers import JSONParser
 
-from jogging.serializers import NewAccountSerializer, RunSerializer
-from jogging.models import Run
+from jogging.serializers import (
+    NewAccountSerializer, RunSerializer, WeeklyReportSerializer, FloatField,
+)
+from jogging.models import Run, WeeklyReport
 
 
 class NewAccountSerializerTestCase(TestCase):
@@ -83,3 +85,64 @@ class RunSerializerTestCase(TestCase):
                 "weather": "Cloudy",
             }
         )
+
+
+class WeeklyReportsSerializerTestCase(TestCase):
+    def test_can_serialize_one_report(self):
+        user = User.objects.create(username="pancho")
+        test_date = date(2020, 10, 12)
+        report = WeeklyReport.objects.create(
+            week_start=test_date,
+            total_distance_km=9.2112987,
+            average_speed_kmph=13.43323222323,
+            owner=user,
+        )
+        serializer = WeeklyReportSerializer(report)
+        week_end = date(2020, 10, 12)+timedelta(days=6)
+        self.assertEqual(
+            serializer.data,
+            {
+                "week": f"{test_date} to {week_end}",
+                "total_distance_km": 9.21,
+                "average_speed_kmph": 13.43,
+            }
+        )
+
+    def test_can_serialize_two_reports(self):
+        user = User.objects.create(username="pancho")
+        test_dates = [
+            (date(2020, 10, 12), date(2020, 10, 18)),
+            (date(2020, 10, 5), date(2020, 10, 11)),
+        ]
+        test_distances = [13.5, 50.4]
+        test_speeds = [20.0, 12.4]
+        reports = [
+            WeeklyReport.objects.create(
+                week_start=rdate[0],
+                total_distance_km=rdist,
+                average_speed_kmph=rspeed,
+                owner=user,
+            ) for (rdate, rdist, rspeed) in zip(
+                test_dates, test_distances, test_speeds)
+        ]
+        serializer = WeeklyReportSerializer(reports, many=True)
+        self.assertEqual(len(serializer.data), 2)
+        for (week_start, week_end), distance, speed in zip(
+                test_dates, test_distances, test_speeds):
+            self.assertIn(
+                {
+                    "week": f"{week_start} to {week_end}",
+                    "total_distance_km": distance,
+                    "average_speed_kmph": speed,
+                },
+                serializer.data
+            )
+
+
+class FloatFieldTestCase(TestCase):
+    def test_to_representation_returns_limited_figures(self):
+        f = FloatField()
+        expected = (1.23, 0.9, 34.44)
+        for icase, case in enumerate((1.229, 0.90234567, 34.43567890)):
+            with self.subTest(case=case):
+                self.assertEqual(f.to_representation(case), expected[icase])

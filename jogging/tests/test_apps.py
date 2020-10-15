@@ -19,20 +19,31 @@
 #
 ########################################################################
 
+from unittest.mock import patch, MagicMock
 
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.test import TestCase
 
-from jogging import views
-
-
-router = DefaultRouter()
-router.register(r"run", views.RunViewSet, basename="run")
-router.register(
-    r"weekly-reports", views.WeeklyReportViewSet, basename="weekly-reports")
+from jogging.apps import JoggingConfig
+from jogging.signals import run_save_handler
 
 
-urlpatterns = [
-    path("new-account/", views.NewAccount.as_view(), name="new-account"),
-    path("", include(router.urls)),
-]
+@patch("jogging.apps.post_save")
+@patch("jogging.apps.AppConfig")
+class JoggingConfigTestCase(TestCase):
+    """This is a very implementation dependent test case because
+    it must fulfill the Django way to register signals."""
+    
+    def test_ready_method_registers_handler_for_post_save(
+            self, pAppConfig, ppost_save):
+        JoggingConfig.path = "."
+        conf = JoggingConfig("jogging", "jogging.apps")
+        conf.get_model = MagicMock()
+        conf.ready()
+        ppost_save.connect.assert_called_once_with(
+            run_save_handler, sender=conf.get_model.return_value
+        )
+        conf.get_model.assert_called_once_with("Run")
+        
+
+
+
