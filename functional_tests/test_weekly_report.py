@@ -136,7 +136,7 @@ class WeeklyReportTestCase(LiveServerTestCase):
         # Now, he sees in the response the data previously posted:
         stats = json.loads(get_resp.content)
         self.assertEqual(len(stats), len(self.expected_reports_data))
-        for item in self.expected_reports_data:
+        for week, item in self.expected_reports_data.items():
             self.assertIn(item, stats)
 
     def test_cannot_modify_weekly_reports(self):
@@ -152,7 +152,7 @@ class WeeklyReportTestCase(LiveServerTestCase):
             }
         )
         # he cannot modify the reports:
-        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.status_code, 405)
 
     def test_can_see_only_own_reports(self):
         # another user has already created an account:
