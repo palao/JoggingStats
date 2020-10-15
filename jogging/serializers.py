@@ -45,12 +45,15 @@ class RunSerializer(serializers.ModelSerializer):
         fields = ("date", "distance", "time", "location", "weather")
 
 
-class FloatField:
+class FloatField(serializers.FloatField):
     def to_representation(self, value):
         return round(value, 2)
 
 
-class WeeklyReportSerializer(serializers.ModelSerializer):    
+class WeeklyReportSerializer(serializers.ModelSerializer):
+    total_distance_km = FloatField()
+    average_speed_kmph = FloatField()
+    
     class Meta:
         model = WeeklyReport
         fields = ("week", "total_distance_km", "average_speed_kmph")

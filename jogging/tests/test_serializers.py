@@ -93,8 +93,8 @@ class WeeklyReportsSerializerTestCase(TestCase):
         test_date = date(2020, 10, 12)
         report = WeeklyReport.objects.create(
             week_start=test_date,
-            total_distance_km=9.21,
-            average_speed_kmph=13.43,
+            total_distance_km=9.2112987,
+            average_speed_kmph=13.43323222323,
             owner=user,
         )
         serializer = WeeklyReportSerializer(report)
