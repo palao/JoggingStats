@@ -28,7 +28,7 @@ from django.test import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.renderers import JSONRenderer
 
-from jogging.views import NewAccount, RunViewSet
+from jogging.views import NewAccount, RunViewSet, WeeklyReportViewSet
 from jogging.models import Run
 from jogging.serializers import RunSerializer
 
@@ -113,3 +113,32 @@ class RunViewSetTestCase(TestCase):
         response = view(request)
         response.render()
         self.assertEqual(response.content, expected)
+
+
+class WeeklyReportViewSetTestCase(TestCase):
+    def test_list_forbidden_if_not_logged_in(self):
+        factory = APIRequestFactory()
+        view = WeeklyReportViewSet.as_view({'get': 'list'})
+        request = factory.get("/weekly-reports/")
+        response = view(request)
+        self.assertEqual(response.status_code, 403)
+        
+    # def test_list_fetches_data_from_user_logged_in(self):
+    #     ...
+        
+    # def test_cannot_create(self):
+    #     factory = APIRequestFactory()
+    #     view = WeeklyReportViewSet.as_view({'post': 'create'})
+    #     request = factory.post(
+    #         view,
+    #         {
+    #             "week": "2020-10-12 to 2020-10-18",
+    #             "total_distance_km": "2.6",
+    #             "average_speed_kmph": "12.3",
+    #         },
+    #         format="json",
+    #     )
+    #     response = view(request)
+    #     self.assertEqual(response.status_code, 403)
+
+    #def test_cannot_update(self):
