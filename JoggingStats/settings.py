@@ -122,5 +122,5 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 WEATHER = {
-    "PROVIDER": "meta_weather",
+    "PROVIDER": "fake_weather",
 }
