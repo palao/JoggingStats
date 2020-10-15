@@ -19,19 +19,173 @@
 #
 ########################################################################
 
-from django.contrib.staticfiles.testing import LiveServerTestCase
+from datetime import date, timedelta
+
+from django.contrib.auth.models import User
 import requests
 
-class UserRolesTestCase(LiveServerTestCase):
-    def test_superusers_can_CRUD_all_runs_and_weeklyreports(self):
-        self.fail()
+from .base import FunctionalTestCase
 
-    def test_superusers_can_CRUD_all_users_data(self):
-        self.fail()
+TODAY = date.today()
 
-    def test_staff_members_can_CRUD_all_users_data(self):
-        self.fail()
 
-    def test_staff_members_cannot_CRUD_all_runs_and_weeklyreports(self):
-        self.fail()
+class UsersMixIn:
+    super_username = "root"
+    super_password = "12x45"
+    staff_username = "epi"
+    staff_password = "bL8s"
+    username = "bob"
+    password = "1Mpossibl3"
+    run_data = {
+        "date": str(TODAY),
+        "distance": 11.3,
+        "time": str(timedelta(minutes=58, seconds=24)),
+        "location": "Frankfurt",
+    }
+    another_username = "mike"
+    another_password = "ju=988X"
+    another_run_data = {
+        "date": str(TODAY-timedelta(days=10)),
+        "distance": 5.3,
+        "time": str(timedelta(minutes=25, seconds=4)),
+        "location": "Madrid",
+    }
+    
+    def setUp(self):
+        # given a superuser:
+        self.super_user = User.objects.create_superuser(
+            self.super_username, password=self.super_password)
+        # and a staff user:
+        self.staff_user = User.objects.create_user(
+            self.staff_username, password=self.staff_password, is_staff=True)
+        # and given that another user has already created an account:
+        auth_data = {
+            "username": self.another_username, "password": self.another_password
+        }
+        post_resp = requests.post(
+            self.live_server_url+"/new-account/", data=auth_data
+        )
+        # and posted some data:
+        requests.post(
+            self.live_server_url+"/run/",
+            data=self.another_run_data,
+            auth=(auth_data["username"], auth_data["password"])
+        )
+        # ...
+        # Bob himself made an account too:
+        auth_data = {"username": self.username, "password": self.password}
+        post_resp = requests.post(
+            self.live_server_url+"/new-account/", data=auth_data
+        )
+        self.auth_data = (self.username, self.password)
+        # he himself posts also some data:
+        requests.post(
+            self.live_server_url+"/run/",
+            data=self.run_data,
+            auth=self.auth_data
+        )
+        self.all_runs = [self.run_data, self.another_run_data]
 
+    def test_can_CRUD_users(self):
+        """This test must pass for superusers and staff, that's why it 
+        is in the MixIn."""
+        # the $BOSS can see the list of users:
+        get_resp = requests.get(
+            self.live_server_url+"/user-list/", auth=self.auth
+        )        
+        self.check_get_run(get_resp, self.all_runs)
+        # he can add a new one:
+        put_resp = requests.put(
+            self.live_server_url+"/user/",
+            data={"username": "aitor", "password": "7illA"}, auth=self.auth
+        )
+        # and it is indeed created:
+        self.assertEqual(put_resp.status_code, 201)
+        self.assertEqual(put_resp.reason, "Created")
+        resp_data = json.loads(put_resp.content)
+        self.assertEqual(resp_data, {"username": "aitor"})
+        # which is confirmed because there are 5 users now:
+        get_resp = requests.get(
+            self.live_server_url+"/user-list/", auth=self.auth
+        )        
+        self.assertEqual(
+            len(json.loads(get_resp.content)), 5
+        )
+        # He can also delete an entry that he has been told to be wrong:
+        del_resp = requests.delete(
+            self.live_server_url+"/user/5/", auth=self.auth
+        )
+        # and, yes, it is gone!
+        get_resp = requests.get(
+            self.live_server_url+"/user-list/", auth=self.auth
+        )        
+        self.assertEqual(
+            len(json.loads(get_resp.content)), 4
+        )
+        
+
+class SuperUsersTestCase(UsersMixIn, FunctionalTestCase):
+    def setUp(self):
+        super().setUp()
+        self.auth = (self.super_username, self.super_password)
+    
+    def test_can_CRUD_run_records(self):
+        # the admin has access to all the data in the site:
+        get_resp = requests.get(
+            self.live_server_url+"/run/", auth=self.auth
+        )        
+        self.check_get_run(get_resp, self.all_runs)
+        # if needed, he can change some data:
+        patch_resp = requests.patch(
+            self.live_server_url+"/run/1/",
+            data={"location": "Tokyo"}, auth=self.auth
+        )
+        # and he sees that it is updated properly:
+        expected_item = self.run_data.copy()
+        expected_item["location"] = "Tokyo"
+        self.check_get_run(patch_resp, [expected_item])
+        # ...but he will restore it back:
+        put_resp = requests.put(
+            self.live_server_url+"/run/1/",
+            data=self.run_data, auth=self.auth
+        )
+        # and it is indeed restored:
+        get_resp = requests.get(
+            self.live_server_url+"/run/", auth=self.auth
+        )        
+        self.check_get_run(get_resp, self.all_runs)
+        # He can also delete an entry that he has been told to be wrong:
+        del_resp = requests.delete(
+            self.live_server_url+"/run/2/", auth=self.auth
+        )
+        # and, yes, it is gone!
+        get_resp = requests.get(
+            self.live_server_url+"/run/", auth=self.auth
+        )        
+        self.check_get_run(get_resp, [self.run_data])
+        
+
+class StaffUsersTestCase(UsersMixIn, FunctionalTestCase):
+    def setUp(self):
+        super().setUp()
+        self.auth = (self.staff_username, self.staff_password)
+    
+    def test_cannot_CRUD_run_records(self):
+        # the staff has no access to run records in the site:
+        get_resp = requests.get(
+            self.live_server_url+"/run/", auth=self.auth
+        )
+        self.assertEqual(get_resp.status_code, 404)
+        # he cannot change the data of other users:
+        patch_resp = requests.patch(
+            self.live_server_url+"/run/1/",
+            data={"location": "Tokyo"}, auth=self.auth
+        )
+        # since he gets an error:
+        self.assertEqual(patch_resp.status_code, 404)
+        # And of course, he cannot delete any entry that doesn't belong to him:
+        del_resp = requests.delete(
+            self.live_server_url+"/run/1/", auth=self.auth
+        )
+        self.assertEqual(del_resp.status_code, 404)
+        

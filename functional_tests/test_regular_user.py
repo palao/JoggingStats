@@ -22,15 +22,16 @@
 from datetime import date, timedelta
 import json
 
-from django.contrib.staticfiles.testing import LiveServerTestCase
 import requests
 
 from .utils import get_weather
+from .base import FunctionalTestCase
+
 
 TODAY = date.today()
 
 
-class RegularUserTestCase(LiveServerTestCase):
+class RegularUserTestCase(FunctionalTestCase):
     username = "bob"
     password = "1Mpossibl3"
     run_data = [
@@ -92,41 +93,6 @@ class RegularUserTestCase(LiveServerTestCase):
         )
         self.auth_data = (self.username, self.password)
         
-    def check_post(self, resp, data):
-        # he gets the proper status code:
-        self.assertEqual(resp.status_code, 201)
-        # and the reason is: the run data was created
-        self.assertEqual(resp.reason, "Created")
-        # and to wrap it up, the text of the response has the posted data:
-        resp_data = json.loads(resp.content)
-        # to handle properly leading zeros:
-        h, m, s = [float(_) for _ in resp_data["time"].split(":")]
-        resp_data["time"] = str(timedelta(hours=h, minutes=m, seconds=s))
-        del resp_data["weather"] #  don't look at weather for now!
-        self.assertEqual(resp_data, data)
-
-    def check_get_run(self, resp, items):
-        # the response is ok
-        self.assertTrue(resp.ok)
-        # with the proper status code:
-        self.assertEqual(resp.status_code, 200)
-        # and the reason is expectedly OK
-        self.assertEqual(resp.reason, "OK")
-        # Now, he sees in the response the data previously posted:
-        posted_runs = json.loads(resp.content)
-        if len(items) == 1:
-            # in this case, only 1 response is expected.
-            posted_runs = [posted_runs]
-        results = []
-        for run in posted_runs:
-            # to handle properly leading zeros:
-            h, m, s = [float(_) for _ in run["time"].split(":")]
-            run["time"] = str(timedelta(hours=h, minutes=m, seconds=s))
-            del run["weather"] #  don't look at weather for now!
-            results.append(run)
-        for item in items:
-            self.assertIn(item, results)
-
     def test_can_save_data(self):
         # Now that he has an account, Bob would like to finally send
         # data for his run this morning:
