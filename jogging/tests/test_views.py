@@ -149,7 +149,7 @@ class WeeklyReportViewSetTestCase(TestCase):
                 owner=user2,
             )
         ]
-        serializer = WeeklyReportSerializer(reports, many=True)
+        serializer = WeeklyReportSerializer(reports[:2], many=True)
         expected = JSONRenderer().render(serializer.data)
         view = WeeklyReportViewSet.as_view({'get': 'list'})
         request = factory.get("/weekly-reports/")

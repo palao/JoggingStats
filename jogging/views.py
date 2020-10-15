@@ -48,5 +48,8 @@ class RunViewSet(viewsets.ModelViewSet):
 
 class WeeklyReportViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = WeeklyReportSerializer
-    queryset = WeeklyReport.objects.all()
     permission_classes = (permissions.IsAuthenticated, )
+
+    def get_queryset(self):
+        return WeeklyReport.objects.filter(owner=self.request.user)
+
