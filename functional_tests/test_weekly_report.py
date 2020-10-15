@@ -78,13 +78,13 @@ class WeeklyReportTestCase(LiveServerTestCase):
     expected_reports_data = {
         "past_week": {
             "week": "{} to {}".format(str(PAST_WEEK_MONDAY), str(PAST_WEEK_SUNDAY)),
-            "total distance [km]": 74.9,
-            "average speed [km/h]": 14.94,
+            "total_distance_km": 74.9,
+            "average_speed_kmph": 14.94,
         },
         "current_week": {
             "week": "{} to {}".format(str(THIS_MONDAY), str(THIS_SUNDAY)),
-            "total distance [km]": 15.9,
-            "average speed [km/h]": 11.47,
+            "total_distance_km": 15.9,
+            "average_speed_kmph": 11.47,
         }
     }
     another_username = "mike"
