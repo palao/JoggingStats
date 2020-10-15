@@ -174,7 +174,7 @@ class WeeklyReportTestCase(LiveServerTestCase):
         )
         stats = json.loads(get_resp.content)
         self.assertEqual(len(stats), len(self.expected_reports_data))
-        for item in self.expected_reports_data:
+        for week, item in self.expected_reports_data.items():
             self.assertIn(item, stats)
 
 
