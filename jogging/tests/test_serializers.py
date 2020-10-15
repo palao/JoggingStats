@@ -88,7 +88,7 @@ class RunSerializerTestCase(TestCase):
 
 
 class WeeklyReportsSerializerTestCase(TestCase):
-    def test_can_serialize_reports(self):
+    def test_can_serialize_one_report(self):
         user = User.objects.create(username="pancho")
         test_date = date(2020, 10, 12)
         report = WeeklyReport.objects.create(
@@ -107,3 +107,33 @@ class WeeklyReportsSerializerTestCase(TestCase):
                 "average_speed_kmph": 13.4,
             }
         )
+
+    def test_can_serialize_two_reports(self):
+        user = User.objects.create(username="pancho")
+        test_dates = [
+            (date(2020, 10, 12), date(2020, 10, 18)),
+            (date(2020, 10, 5), date(2020, 10, 11)),
+        ]
+        test_distances = [13.5, 50.4]
+        test_speeds = [20.0, 12.4]
+        reports = [
+            WeeklyReport.objects.create(
+                week_start=rdate[0],
+                total_distance_km=rdist,
+                average_speed_kmph=rspeed,
+                owner=user,
+            ) for (rdate, rdist, rspeed) in zip(
+                test_dates, test_distances, test_speeds)
+        ]
+        serializer = WeeklyReportSerializer(reports, many=True)
+        self.assertEqual(len(serializer.data), 2)
+        for (week_start, week_end), distance, speed in zip(
+                test_dates, test_distances, test_speeds):
+            self.assertIn(
+                {
+                    "week": f"{week_start} to {week_end}",
+                    "total_distance_km": distance,
+                    "average_speed_kmph": speed,
+                },
+                serializer.data
+            )

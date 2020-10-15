@@ -49,4 +49,4 @@ class WeeklyReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = WeeklyReport
         fields = ("week", "total_distance_km", "average_speed_kmph")
-        
+
