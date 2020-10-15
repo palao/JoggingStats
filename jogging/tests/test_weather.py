@@ -163,5 +163,5 @@ class FakeWeatherTestCase(unittest.TestCase):
         dates = (date(2020, 7, 15), date(2000, 3, 22), date(2019, 12, 24))
         for loc, d in zip(locations, dates):
             with self.subTest(location=loc, date=d):
-                self.assertEqual(fake_weather(loc, d), None)
+                self.assertEqual(fake_weather(loc, d), "fake")
 
