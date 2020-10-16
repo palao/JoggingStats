@@ -153,7 +153,7 @@ class RegularUserTestCase(FunctionalTestCase):
         # and he sees that it is updated properly:
         expected_item = self.run_data[0].copy()
         expected_item["distance"] = 10.3
-        self.check_get_run(patch_resp, [expected_item])
+        self.check_get_run(patch_resp, [expected_item], single=True)
         # and he also realized that another entry is completely wrong,
         # so he fixes it:
         item = {
@@ -166,7 +166,7 @@ class RegularUserTestCase(FunctionalTestCase):
             self.live_server_url+"/run/13/",
             data=item, auth=self.auth_data
         )
-        self.check_get_run(put_resp, [item])
+        self.check_get_run(put_resp, [item], single=True)
         # Sweet!
         
     def test_cannot_update_run_records_from_other_users(self):
