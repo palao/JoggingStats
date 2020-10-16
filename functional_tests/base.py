@@ -60,4 +60,4 @@ class FunctionalTestCase(LiveServerTestCase):
             results.append(run)
         for item in items:
             self.assertIn(item, results)
-
+        self.assertEqual(len(items), len(results))

@@ -175,7 +175,7 @@ class StaffUsersTestCase(UsersMixIn, FunctionalTestCase):
         get_resp = requests.get(
             self.live_server_url+"/run/", auth=self.auth
         )
-        self.assertEqual(get_resp.status_code, 404)
+        self.check_get_run(get_resp, [])
         # he cannot change the data of other users:
         patch_resp = requests.patch(
             self.live_server_url+"/run/1/",
