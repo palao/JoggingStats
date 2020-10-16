@@ -21,6 +21,7 @@
 
 from datetime import timedelta, date
 from unittest.mock import patch
+import json
 
 from django.urls import reverse
 from django.contrib.auth.models import User
@@ -126,7 +127,43 @@ class RunViewSetTestCase(TestCase):
         response.render()
         self.assertEqual(response.content, expected)
 
-    #POST, PATCH, DELETE
+    def test_partial_update_patches_data(self):
+        for user in (self.user1, self.superuser):
+            with self.subTest(user=user):
+                factory = APIRequestFactory()
+                view = RunViewSet.as_view({'patch': 'partial_update'})
+                request = factory.patch("/run/", {"location": "Winnipeg"})
+                force_authenticate(request, user=user)
+                response = view(request, pk=1)
+                response.render()
+                data = json.loads(response.content)
+                self.assertEqual(data["location"], "Winnipeg")
+                # restore:
+                self.run1.location = "Porto"
+                self.run1.save()
+
+    def test_destroy_deletes_data(self):
+        for iuser, user in enumerate((self.user1, self.superuser)):
+            ik = iuser*2+1 # because I'll destroy the 1st and add the 3rd
+            with self.subTest(user=user):
+                factory = APIRequestFactory()
+                view = RunViewSet.as_view({'delete': 'destroy'})
+                request = factory.delete("/run/")
+                force_authenticate(request, user=user)
+                response = view(request, pk=ik)
+                response.render()
+                self.assertEqual(Run.objects.count(), 1)
+                # add one more:
+                Run.objects.create(
+                    date=date(2020, 10, 13),
+                    distance="5.6",
+                    time=timedelta(minutes=53, seconds=22),
+                    location="Porto",
+                    owner=self.user1,
+                )
+
+    # POST as superuser in the name of another user?
+
 
 class WeeklyReportViewSetTestCase(TestCase):
     def test_list_forbidden_if_not_logged_in(self):
