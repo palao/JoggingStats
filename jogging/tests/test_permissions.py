@@ -23,7 +23,7 @@ import unittest
 
 from rest_framework.permissions import BasePermission
 
-from jogging.permissions import IsOwner
+from jogging.permissions import IsOwner, IsOwnerOrAdmin
 
 
 class IsOwnerTestCase(unittest.TestCase):
@@ -51,5 +51,56 @@ class IsOwnerTestCase(unittest.TestCase):
             
         perm = IsOwner()
         self.assertFalse(
+            perm.has_object_permission(FakeRequest(), None, FakeObj())
+        )
+        
+class SuperUser:
+    is_superuser = True
+
+    
+class NormalUser:
+    is_superuser = False
+
+    
+class IsOwnerOrAdminTestCase(unittest.TestCase):
+    def test_is_permission(self):
+        self.assertTrue(issubclass(IsOwnerOrAdmin, BasePermission))
+        
+    def test_has_access_if_owner(self):
+        user = NormalUser()
+        class FakeRequest:
+            ...
+
+        class FakeObj:
+            ...
+
+        FakeRequest.user = user
+        FakeObj.owner = user
+        perm = IsOwnerOrAdmin()
+        self.assertTrue(
+            perm.has_object_permission(FakeRequest(), None, FakeObj())
+        )
+
+    def test_has_no_access_if_not_owner_and_not_superuser(self):
+        class FakeRequest:
+            user = NormalUser()
+
+        class FakeObj:
+            owner = NormalUser()
+            
+        perm = IsOwnerOrAdmin()
+        self.assertFalse(
+            perm.has_object_permission(FakeRequest(), None, FakeObj())
+        )
+
+    def test_has_access_if_admin(self):            
+        class FakeRequest:
+            user = SuperUser()
+
+        class FakeObj:
+            owner = NormalUser()
+            
+        perm = IsOwnerOrAdmin()
+        self.assertTrue(
             perm.has_object_permission(FakeRequest(), None, FakeObj())
         )
