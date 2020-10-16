@@ -28,7 +28,7 @@ from .serializers import (
     NewAccountSerializer, RunSerializer, WeeklyReportSerializer,
 )
 from .models import Run, WeeklyReport
-from .permissions import IsOwner
+from .permissions import IsOwnerOrAdmin
 
 class NewAccount(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -37,9 +37,11 @@ class NewAccount(generics.CreateAPIView):
 
 class RunViewSet(viewsets.ModelViewSet):
     serializer_class = RunSerializer
-    permission_classes = (permissions.IsAuthenticated, )
+    permission_classes = (permissions.IsAuthenticated, IsOwnerOrAdmin)
 
     def get_queryset(self):
+        if self.request.user.is_superuser:
+            return Run.objects.all()
         return Run.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):

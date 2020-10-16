@@ -83,7 +83,7 @@ class RunViewSetTestCase(TestCase):
         response = view(request)
         self.assertEqual(response.status_code, 403)
 
-    def test_list_fetches_data_from_user_logged_in(self):
+    def test_list_fetches_data_from_logged_in_user(self):
         user = User.objects.create(username="sam")
         with patch("jogging.models.get_weather") as pget_weather:
             pget_weather.return_value = "Cloudy"
@@ -114,6 +114,39 @@ class RunViewSetTestCase(TestCase):
         response.render()
         self.assertEqual(response.content, expected)
 
+    def test_list_fetches_all_data_if_superuser(self):
+        user = User.objects.create(username="sam")
+        with patch("jogging.models.get_weather") as pget_weather:
+            pget_weather.return_value = "Cloudy"
+            run = Run.objects.create(
+                date=date(2020, 10, 13),
+                distance="5.6",
+                time=timedelta(minutes=53, seconds=22),
+                location="Porto",
+                owner=user,
+            )
+        other_user = User.objects.create(username="dave")
+        with patch("jogging.models.get_weather") as pget_weather:
+            pget_weather.return_value = "Cloudy"
+            other_run = Run.objects.create(
+                date=date(2020, 9,23),
+                distance="4.9",
+                time=timedelta(minutes=30, seconds=8),
+                location="Casablanca",
+                owner=other_user,
+            )
+        serializer = RunSerializer([run, other_run], many=True)
+        expected = JSONRenderer().render(serializer.data)
+        superuser = User.objects.create_superuser(username="boss")
+        factory = APIRequestFactory()
+        view = RunViewSet.as_view({'get': 'list'})
+        request = factory.get("/run/")
+        force_authenticate(request, user=superuser)
+        response = view(request)
+        response.render()
+        self.assertEqual(response.content, expected)
+
+    #POST, PATCH, DELETE
 
 class WeeklyReportViewSetTestCase(TestCase):
     def test_list_forbidden_if_not_logged_in(self):
