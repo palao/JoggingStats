@@ -51,6 +51,27 @@ class NewAccountTestCase(TestCase):
 
 
 class RunViewSetTestCase(TestCase):
+    def setUp(self):
+        self.user1 = User.objects.create(username="sam")
+        self.user2 = User.objects.create(username="dave")
+        self.superuser = User.objects.create_superuser(username="boss")
+        with patch("jogging.models.get_weather") as pget_weather:
+            pget_weather.return_value = "Cloudy"
+            self.run1 = Run.objects.create(
+                date=date(2020, 10, 13),
+                distance="5.6",
+                time=timedelta(minutes=53, seconds=22),
+                location="Porto",
+                owner=self.user1,
+            )
+            self.run2 = Run.objects.create(
+                date=date(2020, 9,23),
+                distance="4.9",
+                time=timedelta(minutes=30, seconds=8),
+                location="Casablanca",
+                owner=self.user2,
+            )
+        
     def test_create_allowed_if_authenticated(self):
         user = User.objects.create(username="paul")
         factory = APIRequestFactory()
@@ -84,64 +105,23 @@ class RunViewSetTestCase(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_list_fetches_data_from_logged_in_user(self):
-        user = User.objects.create(username="sam")
-        with patch("jogging.models.get_weather") as pget_weather:
-            pget_weather.return_value = "Cloudy"
-            run = Run.objects.create(
-                date=date(2020, 10, 13),
-                distance="5.6",
-                time=timedelta(minutes=53, seconds=22),
-                location="Porto",
-                owner=user,
-            )
-        serializer = RunSerializer([run], many=True)
+        serializer = RunSerializer([self.run1], many=True)
         expected = JSONRenderer().render(serializer.data)
-        other_user = User.objects.create(username="dave")
-        with patch("jogging.models.get_weather") as pget_weather:
-            pget_weather.return_value = "Cloudy"
-            other_run = Run.objects.create(
-                date=date(2020, 9,23),
-                distance="4.9",
-                time=timedelta(minutes=30, seconds=8),
-                location="Casablanca",
-                owner=other_user,
-            )
         factory = APIRequestFactory()
         view = RunViewSet.as_view({'get': 'list'})
         request = factory.get("/run/")
-        force_authenticate(request, user=user)
+        force_authenticate(request, user=self.user1)
         response = view(request)
         response.render()
         self.assertEqual(response.content, expected)
 
     def test_list_fetches_all_data_if_superuser(self):
-        user = User.objects.create(username="sam")
-        with patch("jogging.models.get_weather") as pget_weather:
-            pget_weather.return_value = "Cloudy"
-            run = Run.objects.create(
-                date=date(2020, 10, 13),
-                distance="5.6",
-                time=timedelta(minutes=53, seconds=22),
-                location="Porto",
-                owner=user,
-            )
-        other_user = User.objects.create(username="dave")
-        with patch("jogging.models.get_weather") as pget_weather:
-            pget_weather.return_value = "Cloudy"
-            other_run = Run.objects.create(
-                date=date(2020, 9,23),
-                distance="4.9",
-                time=timedelta(minutes=30, seconds=8),
-                location="Casablanca",
-                owner=other_user,
-            )
-        serializer = RunSerializer([run, other_run], many=True)
+        serializer = RunSerializer([self.run1, self.run2], many=True)
         expected = JSONRenderer().render(serializer.data)
-        superuser = User.objects.create_superuser(username="boss")
         factory = APIRequestFactory()
         view = RunViewSet.as_view({'get': 'list'})
         request = factory.get("/run/")
-        force_authenticate(request, user=superuser)
+        force_authenticate(request, user=self.superuser)
         response = view(request)
         response.render()
         self.assertEqual(response.content, expected)
