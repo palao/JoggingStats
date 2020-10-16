@@ -105,7 +105,7 @@ class RegularUserTestCase(FunctionalTestCase):
         new_data = json.loads(post_resp.content)
         self.run_data[0] = new_data
         # Wonderful! He sees that the posted data has his own username included:
-        self.assertEqual(new_data["username"], self.username)
+        self.assertEqual(new_data["user"], self.username)
         # He also stores yesterday's run data:
         post_resp = requests.post(
             self.live_server_url+"/run/",
@@ -169,14 +169,18 @@ class RegularUserTestCase(FunctionalTestCase):
         item = {
             "date": str(TODAY-timedelta(days=2)),
             "distance": 10.7,
-            "time": str(timedelta(hours=1, minutes=6, seconds=22)),
+            "time": "01:06:22",
             "location": "Rome",
         }
         put_resp = requests.put(
             self.live_server_url+f"/run/{pk}/",
             data=item, auth=self.auth_data
         )
-        
+        item.update({
+            "id": pk,
+            "weather": self.run_data[1]["weather"],
+            "user": self.run_data[1]["user"]
+        })
         self.check_get_run(put_resp, [item], single=True)
         # Sweet!
         

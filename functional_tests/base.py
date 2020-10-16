@@ -36,7 +36,11 @@ class FunctionalTestCase(LiveServerTestCase):
         # to handle properly leading zeros:
         h, m, s = [float(_) for _ in resp_data["time"].split(":")]
         resp_data["time"] = str(timedelta(hours=h, minutes=m, seconds=s))
-        del resp_data["weather"] #  don't look at weather for now!
+        # (the next three fields must not be checked in posts since
+        # they are not part of the input)
+        del resp_data["weather"]
+        del resp_data["id"]
+        del resp_data["user"]
         self.assertEqual(resp_data, data)
 
     def check_get_run(self, resp, items, single=False):

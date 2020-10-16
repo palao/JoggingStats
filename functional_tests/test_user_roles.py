@@ -20,6 +20,7 @@
 ########################################################################
 
 from datetime import date, timedelta
+import json
 
 from django.contrib.auth.models import User
 import requests
@@ -66,11 +67,12 @@ class UsersMixIn:
             self.live_server_url+"/new-account/", data=auth_data
         )
         # and posted some data:
-        requests.post(
+        response = requests.post(
             self.live_server_url+"/run/",
             data=self.another_run_data,
             auth=(auth_data["username"], auth_data["password"])
         )
+        self.another_run_data = json.loads(response.content)
         # ...
         # Bob himself made an account too:
         auth_data = {"username": self.username, "password": self.password}
@@ -79,11 +81,12 @@ class UsersMixIn:
         )
         self.auth_data = (self.username, self.password)
         # he himself posts also some data:
-        requests.post(
+        response = requests.post(
             self.live_server_url+"/run/",
             data=self.run_data,
             auth=self.auth_data
         )
+        self.run_data = json.loads(response.content)
         self.all_runs = [self.run_data, self.another_run_data]
 
     def test_can_CRUD_users(self):
@@ -135,9 +138,10 @@ class SuperUsersTestCase(UsersMixIn, FunctionalTestCase):
             self.live_server_url+"/run/", auth=self.auth
         )        
         self.check_get_run(get_resp, self.all_runs)
+        pk = self.run_data["id"]
         # if needed, he can change some data:
         patch_resp = requests.patch(
-            self.live_server_url+"/run/6/",
+            self.live_server_url+f"/run/{pk}/",
             data={"location": "Tokyo"}, auth=self.auth
         )
         # and he sees that it is updated properly:
@@ -145,9 +149,12 @@ class SuperUsersTestCase(UsersMixIn, FunctionalTestCase):
         expected_item["location"] = "Tokyo"
         self.check_get_run(patch_resp, [expected_item], single=True)
         # ...but he will restore it back:
+        data2put = self.run_data.copy()
+        del data2put["user"]
+        del data2put["id"]
         put_resp = requests.put(
-            self.live_server_url+"/run/6/",
-            data=self.run_data, auth=self.auth
+            self.live_server_url+f"/run/{pk}/",
+            data=data2put, auth=self.auth
         )
         # and it is indeed restored:
         get_resp = requests.get(
@@ -155,8 +162,9 @@ class SuperUsersTestCase(UsersMixIn, FunctionalTestCase):
         )        
         self.check_get_run(get_resp, self.all_runs)
         # He can also delete an entry that he has been told to be wrong:
+        pk = self.another_run_data["id"]
         del_resp = requests.delete(
-            self.live_server_url+"/run/5/", auth=self.auth
+            self.live_server_url+f"/run/{pk}/", auth=self.auth
         )
         # and, yes, it is gone!
         get_resp = requests.get(
