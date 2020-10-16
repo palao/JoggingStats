@@ -51,13 +51,13 @@ class FunctionalTestCase(LiveServerTestCase):
         if single:
             # in this case, only 1 response is expected.
             posted_runs = [posted_runs]
-        results = []
-        for run in posted_runs:
-            # to handle properly leading zeros:
-            h, m, s = [float(_) for _ in run["time"].split(":")]
-            run["time"] = str(timedelta(hours=h, minutes=m, seconds=s))
-            del run["weather"] #  don't look at weather for now!
-            results.append(run)
+        # results = []
+        # for run in posted_runs:
+        #     # to handle properly leading zeros:
+        #     h, m, s = [float(_) for _ in run["time"].split(":")]
+        #     run["time"] = str(timedelta(hours=h, minutes=m, seconds=s))
+        #     del run["weather"] #  don't look at weather for now!
+        #     results.append(run)
         for item in items:
-            self.assertIn(item, results)
-        self.assertEqual(len(items), len(results))
+            self.assertIn(item, posted_runs)
+        self.assertEqual(len(items), len(posted_runs))

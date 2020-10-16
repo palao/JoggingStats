@@ -80,12 +80,14 @@ class RegularUserTestCase(FunctionalTestCase):
             self.live_server_url+"/new-account/", data=auth_data
         )
         # and posted some data:
+        new_data = []
         for item in self.another_run_data:
-            requests.post(
+            post_resp = requests.post(
                 self.live_server_url+"/run/",
                 data=item, auth=(auth_data["username"], auth_data["password"])
             )
-        
+            new_data.append(json.loads(post_resp.content))
+        self.another_run_data = new_data
         # Bob himself made an account too:
         auth_data = {"username": self.username, "password": self.password}
         post_resp = requests.post(
@@ -100,13 +102,18 @@ class RegularUserTestCase(FunctionalTestCase):
             self.live_server_url+"/run/", data=self.run_data[0], auth=self.auth_data
         )
         self.check_post(post_resp, self.run_data[0])
-        # Wonderful!
+        new_data = json.loads(post_resp.content)
+        self.run_data[0] = new_data
+        # Wonderful! He sees that the posted data has his own username included:
+        self.assertEqual(new_data["username"], self.username)
         # He also stores yesterday's run data:
         post_resp = requests.post(
             self.live_server_url+"/run/",
             data=self.run_data[1], auth=self.auth_data
         )
         self.check_post(post_resp, self.run_data[1])
+        self.run_data[1] = json.loads(post_resp.content)
+        
         # But he is wondering... are the data really stored? He tries to
         # retrieve them:
         get_resp = requests.get(
@@ -140,17 +147,20 @@ class RegularUserTestCase(FunctionalTestCase):
         
     def test_can_update_own_data(self):
         # after posting some data:
-        for run_data in self.run_data:
+        for irun_data, run_data in enumerate(self.run_data):
             post_resp = requests.post(
                 self.live_server_url+"/run/", data=run_data, auth=self.auth_data
             )
+            self.run_data[irun_data] = json.loads(post_resp.content)
         # bob realized that he typed a wrong distance on the first record.
         # He tries to fix that with a PATCH:
+        pk = self.run_data[0]["id"]
         patch_resp = requests.patch(
-            self.live_server_url+"/run/12/",
+            self.live_server_url+f"/run/{pk}/",
             data={"distance": 10.3}, auth=self.auth_data
         )
         # and he sees that it is updated properly:
+        pk = self.run_data[1]["id"]
         expected_item = self.run_data[0].copy()
         expected_item["distance"] = 10.3
         self.check_get_run(patch_resp, [expected_item], single=True)
@@ -163,17 +173,19 @@ class RegularUserTestCase(FunctionalTestCase):
             "location": "Rome",
         }
         put_resp = requests.put(
-            self.live_server_url+"/run/13/",
+            self.live_server_url+f"/run/{pk}/",
             data=item, auth=self.auth_data
         )
+        
         self.check_get_run(put_resp, [item], single=True)
         # Sweet!
         
     def test_cannot_update_run_records_from_other_users(self):
         # Bob wants to fix an entry in his statistics that is wrong.
         # The location must be changed:
+        pk = self.another_run_data[0]["id"]
         patch_resp = requests.patch(
-            self.live_server_url+"/run/1/",
+            self.live_server_url+f"/run/{pk}/",
             data={"location": "Sevilla"}, auth=self.auth_data
         )
         # but he got a 404:
@@ -186,8 +198,9 @@ class RegularUserTestCase(FunctionalTestCase):
             "time": str(timedelta(hours=1, minutes=6, seconds=22)),
             "location": "Rome",
         }
+        pk = self.another_run_data[1]["id"]
         put_resp = requests.put(
-            self.live_server_url+"/run/2/",
+            self.live_server_url+f"/run/{pk}/",
             data=item, auth=self.auth_data
         )
         # but he cannot, as expected:
