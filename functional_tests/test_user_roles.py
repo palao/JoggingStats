@@ -137,16 +137,16 @@ class SuperUsersTestCase(UsersMixIn, FunctionalTestCase):
         self.check_get_run(get_resp, self.all_runs)
         # if needed, he can change some data:
         patch_resp = requests.patch(
-            self.live_server_url+"/run/1/",
+            self.live_server_url+"/run/6/",
             data={"location": "Tokyo"}, auth=self.auth
         )
         # and he sees that it is updated properly:
         expected_item = self.run_data.copy()
         expected_item["location"] = "Tokyo"
-        self.check_get_run(patch_resp, [expected_item])
+        self.check_get_run(patch_resp, [expected_item], single=True)
         # ...but he will restore it back:
         put_resp = requests.put(
-            self.live_server_url+"/run/1/",
+            self.live_server_url+"/run/6/",
             data=self.run_data, auth=self.auth
         )
         # and it is indeed restored:
@@ -156,7 +156,7 @@ class SuperUsersTestCase(UsersMixIn, FunctionalTestCase):
         self.check_get_run(get_resp, self.all_runs)
         # He can also delete an entry that he has been told to be wrong:
         del_resp = requests.delete(
-            self.live_server_url+"/run/2/", auth=self.auth
+            self.live_server_url+"/run/5/", auth=self.auth
         )
         # and, yes, it is gone!
         get_resp = requests.get(

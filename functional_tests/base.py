@@ -39,7 +39,7 @@ class FunctionalTestCase(LiveServerTestCase):
         del resp_data["weather"] #  don't look at weather for now!
         self.assertEqual(resp_data, data)
 
-    def check_get_run(self, resp, items):
+    def check_get_run(self, resp, items, single=False):
         # the response is ok
         self.assertTrue(resp.ok)
         # with the proper status code:
@@ -48,7 +48,7 @@ class FunctionalTestCase(LiveServerTestCase):
         self.assertEqual(resp.reason, "OK")
         # Now, he sees in the response the data previously posted:
         posted_runs = json.loads(resp.content)
-        if len(items) == 1:
+        if single:
             # in this case, only 1 response is expected.
             posted_runs = [posted_runs]
         results = []
