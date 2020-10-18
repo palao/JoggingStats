@@ -29,7 +29,9 @@ from django.test import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.renderers import JSONRenderer
 
-from jogging.views import NewAccount, RunViewSet, WeeklyReportViewSet
+from jogging.views import (
+    NewAccount, RunViewSet, WeeklyReportViewSet, UserViewSet,
+)
 from jogging.models import Run, WeeklyReport
 from jogging.serializers import RunSerializer, WeeklyReportSerializer
 
@@ -245,3 +247,97 @@ class WeeklyReportViewSetTestCase(TestCase):
         force_authenticate(request, user=user)
         with self.assertRaises(AttributeError):
             response = view(request)
+
+
+class UserViewSetTestCase(TestCase):
+    def setUp(self):
+        self.user1 = User.objects.create(username="sam")
+        self.user2 = User.objects.create(username="dave")
+        self.superuser = User.objects.create_superuser(username="boss")
+        self.staff_user = User.objects.create(username="manue", is_staff=True)
+        
+    def test_staff_and_superuser_can_create(self):
+        new_username = "paul"
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'post': 'create'})
+        for user in (self.superuser, self.staff_user):
+            request = factory.post(view, {"username": new_username})
+            force_authenticate(request, user=user)
+            response = view(request)
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(User.objects.count(), 5)
+            User.objects.filter(username="paul").first().delete()
+
+    def test_create_forbidden_if_not_logged_in(self):
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'post': 'create'})
+        request = factory.post(view, {"username": "paul"})
+        response = view(request)
+        self.assertEqual(response.status_code, 403)
+
+    def test_create_forbidden_if_not_staff_nor_superuser(self):
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'post': 'create'})
+        request = factory.post(view, {"username": "paul"})
+        force_authenticate(request, user=self.user1)
+        response = view(request)
+        self.assertEqual(response.status_code, 403)
+
+    # def test_list_fetches_data_from_logged_in_user(self):
+    #     serializer = UserSerializer([self.run1], many=True)
+    #     expected = JSONRenderer().render(serializer.data)
+    #     factory = APIRequestFactory()
+    #     view = UserViewSet.as_view({'get': 'list'})
+    #     request = factory.get("/run/")
+    #     force_authenticate(request, user=self.user1)
+    #     response = view(request)
+    #     response.render()
+    #     self.assertEqual(response.content, expected)
+
+    # def test_list_fetches_all_data_if_superuser(self):
+    #     serializer = UserSerializer([self.run1, self.run2], many=True)
+    #     expected = JSONRenderer().render(serializer.data)
+    #     factory = APIRequestFactory()
+    #     view = UserViewSet.as_view({'get': 'list'})
+    #     request = factory.get("/run/")
+    #     force_authenticate(request, user=self.superuser)
+    #     response = view(request)
+    #     response.render()
+    #     self.assertEqual(response.content, expected)
+
+    # def test_partial_update_patches_data(self):
+    #     for user in (self.user1, self.superuser):
+    #         with self.subTest(user=user):
+    #             factory = APIRequestFactory()
+    #             view = UserViewSet.as_view({'patch': 'partial_update'})
+    #             request = factory.patch("/run/", {"location": "Winnipeg"})
+    #             force_authenticate(request, user=user)
+    #             response = view(request, pk=1)
+    #             response.render()
+    #             data = json.loads(response.content)
+    #             self.assertEqual(data["location"], "Winnipeg")
+    #             # restore:
+    #             self.run1.location = "Porto"
+    #             self.run1.save()
+
+    # def test_destroy_deletes_data(self):
+    #     for iuser, user in enumerate((self.user1, self.superuser)):
+    #         ik = iuser*2+1 # because I'll destroy the 1st and add the 3rd
+    #         with self.subTest(user=user):
+    #             factory = APIRequestFactory()
+    #             view = UserViewSet.as_view({'delete': 'destroy'})
+    #             request = factory.delete("/run/")
+    #             force_authenticate(request, user=user)
+    #             response = view(request, pk=ik)
+    #             response.render()
+    #             self.assertEqual(User.objects.count(), 1)
+    #             # add one more:
+    #             User.objects.create(
+    #                 date=date(2020, 10, 13),
+    #                 distance="5.6",
+    #                 time=timedelta(minutes=53, seconds=22),
+    #                 location="Porto",
+    #                 owner=self.user1,
+    #             )
+
+    # # POST as staff a new user

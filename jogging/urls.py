@@ -30,6 +30,7 @@ router = DefaultRouter()
 router.register(r"run", views.RunViewSet, basename="run")
 router.register(
     r"weekly-reports", views.WeeklyReportViewSet, basename="weekly-reports")
+router.register(r"user", views.UserViewSet, basename="user")
 
 
 urlpatterns = [
