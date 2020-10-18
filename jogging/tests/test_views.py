@@ -261,7 +261,10 @@ class UserViewSetTestCase(TestCase):
         factory = APIRequestFactory()
         view = UserViewSet.as_view({'post': 'create'})
         for user in (self.superuser, self.staff_user):
-            request = factory.post(view, {"username": new_username})
+            request = factory.post(
+                view,
+                {"username": new_username, "password": "tr1cky"}
+            )
             force_authenticate(request, user=user)
             response = view(request)
             self.assertEqual(response.status_code, 201)
