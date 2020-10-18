@@ -123,36 +123,27 @@ class IsAdminOrStaffTestCase(unittest.TestCase):
         class FakeRequest:
             user = SuperUser()
 
-        class FakeObj:
-            owner = NormalUser()
-            
         perm = IsAdminOrStaff()
         self.assertTrue(
-            perm.has_object_permission(FakeRequest(), None, FakeObj())
+            perm.has_permission(FakeRequest(), None)
         )
 
     def test_has_access_if_staff(self):            
         class FakeRequest:
             user = StaffUser()
 
-        class FakeObj:
-            owner = NormalUser()
-            
         perm = IsAdminOrStaff()
         self.assertTrue(
-            perm.has_object_permission(FakeRequest(), None, FakeObj())
+            perm.has_permission(FakeRequest(), None)
         )
 
     def test_has_no_access_if_not_staff_and_not_superuser(self):
         class FakeRequest:
             user = NormalUser()
 
-        class FakeObj:
-            owner = NormalUser()
-            
         perm = IsAdminOrStaff()
         self.assertFalse(
-            perm.has_object_permission(FakeRequest(), None, FakeObj())
+            perm.has_permission(FakeRequest(), None)
         )
 
 
