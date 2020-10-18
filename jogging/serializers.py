@@ -25,10 +25,10 @@ from django.contrib.auth.models import User
 from jogging.models import Run, WeeklyReport
 
 
-class NewAccountSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'password')
+        fields = ('username', 'password', 'id')
         extra_kwargs = {'password': {'write_only': True}}
         
     def create(self, validated_data):
@@ -38,12 +38,6 @@ class NewAccountSerializer(serializers.ModelSerializer):
         user.save()
         return user
     
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ("username", "password")
-
 
 class RunSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="owner.username", required=False)

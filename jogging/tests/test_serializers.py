@@ -28,13 +28,13 @@ from django.contrib.auth.models import User
 from rest_framework.parsers import JSONParser
 
 from jogging.serializers import (
-    NewAccountSerializer, RunSerializer, WeeklyReportSerializer, FloatField,
+    UserSerializer, RunSerializer, WeeklyReportSerializer, FloatField,
     UserSerializer,
 )
 from jogging.models import Run, WeeklyReport
 
 
-class NewAccountSerializerTestCase(TestCase):
+class UserSerializerTestCase(TestCase):
     def setUp(self):
         json_data = b'{"username": "pedro", "password": "whatever"}'
         stream = io.BytesIO(json_data)
@@ -43,8 +43,19 @@ class NewAccountSerializerTestCase(TestCase):
             "username": "pedro", "password": "whatever"
         }
         
+    def test_can_serialize(self):
+        user = User.objects.create(username="pancho")
+        serializer = UserSerializer(user)
+        self.assertEqual(
+            serializer.data,
+            {
+                "id": 1,
+                "username": user.username,
+            }
+        )
+
     def test_can_deserialize_user(self):
-        serializer = NewAccountSerializer(data=self.data)
+        serializer = UserSerializer(data=self.data)
         self.assertTrue(serializer.is_valid())
         self.assertEqual(
             dict(serializer.validated_data),
@@ -52,7 +63,7 @@ class NewAccountSerializerTestCase(TestCase):
         )
 
     def test_create_makes_new_user(self):
-        serializer = NewAccountSerializer(data=self.data)
+        serializer = UserSerializer(data=self.data)
         serializer.is_valid()
         new_user = serializer.create(serializer.validated_data)
         self.assertEqual(User.objects.count(), 1)
@@ -149,17 +160,4 @@ class FloatFieldTestCase(TestCase):
         for icase, case in enumerate((1.229, 0.90234567, 34.43567890)):
             with self.subTest(case=case):
                 self.assertEqual(f.to_representation(case), expected[icase])
-
-
-class UserSerializerTestCase(TestCase):
-    def test_can_serialize(self):
-        user = User.objects.create(username="pancho")
-        serializer = UserSerializer(user)
-        self.assertEqual(
-            serializer.data,
-            {
-                "id": 1,
-                "username": user.username,
-            }
-        )
 
