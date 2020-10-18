@@ -29,6 +29,7 @@ from rest_framework.parsers import JSONParser
 
 from jogging.serializers import (
     NewAccountSerializer, RunSerializer, WeeklyReportSerializer, FloatField,
+    UserSerializer,
 )
 from jogging.models import Run, WeeklyReport
 
@@ -83,6 +84,8 @@ class RunSerializerTestCase(TestCase):
                 "time": "01:00:02",
                 "location": "Las Vegas",
                 "weather": "Cloudy",
+                "id": 1,
+                "user": user.username,
             }
         )
 
@@ -146,3 +149,17 @@ class FloatFieldTestCase(TestCase):
         for icase, case in enumerate((1.229, 0.90234567, 34.43567890)):
             with self.subTest(case=case):
                 self.assertEqual(f.to_representation(case), expected[icase])
+
+
+class UserSerializerTestCase(TestCase):
+    def test_can_serialize(self):
+        user = User.objects.create(username="pancho")
+        serializer = UserSerializer(user)
+        self.assertEqual(
+            serializer.data,
+            {
+                "id": 1,
+                "username": user.username,
+            }
+        )
+

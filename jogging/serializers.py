@@ -39,10 +39,20 @@ class NewAccountSerializer(serializers.ModelSerializer):
         return user
     
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("username", "password")
+
+
 class RunSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source="owner.username", required=False)
     class Meta:
         model = Run
-        fields = ("date", "distance", "time", "location", "weather")
+        fields = (
+            "id", "user", "date", "distance", "time", "location", "weather"
+        )
+        read_only_fields = ("id", "user")
 
 
 class FloatField(serializers.FloatField):
