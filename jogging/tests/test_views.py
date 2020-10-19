@@ -33,7 +33,9 @@ from jogging.views import (
     NewAccount, RunViewSet, WeeklyReportViewSet, UserViewSet,
 )
 from jogging.models import Run, WeeklyReport
-from jogging.serializers import RunSerializer, WeeklyReportSerializer
+from jogging.serializers import (
+    RunSerializer, WeeklyReportSerializer, UserSerializer,
+)
 
 
 class NewAccountTestCase(TestCase):
@@ -286,28 +288,72 @@ class UserViewSetTestCase(TestCase):
         response = view(request)
         self.assertEqual(response.status_code, 403)
 
-    # def test_list_fetches_data_from_logged_in_user(self):
-    #     serializer = UserSerializer([self.run1], many=True)
+    def test_admin_and_staff_can_list_data_from_all_users(self):
+        serializer = UserSerializer(
+            [self.user1, self.user2, self.superuser, self.staff_user],
+            many=True
+        )
+        expected = JSONRenderer().render(serializer.data)
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'get': 'list'})
+        for user in (self.superuser, self.staff_user):
+            request = factory.get("/user/")
+            force_authenticate(request, user=user)
+            response = view(request)
+            response.render()
+            self.assertEqual(response.content, expected)
+
+    def test_regular_user_cannot_list_data_from_users(self):
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'get': 'list'})
+        request = factory.get("/user/")
+        force_authenticate(request, user=self.user1)
+        response = view(request)
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_and_staff_can_remove_users(self):
+        to_del_users = (self.user1, self.user2)
+        active_users = (self.superuser, self.staff_user)
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'delete': 'destroy'})
+        for iuser, (rip, user) in enumerate(zip(to_del_users, active_users), 1):
+            request = factory.delete("/user/")
+            force_authenticate(request, user=user)
+            response = view(request, pk=rip.id)
+            response.render()
+            self.assertEqual(User.objects.count(), 4-iuser)
+
+    def test_regular_user_cannot_remove_users(self):
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'delete': 'destroy'})
+        request = factory.delete("/user/")
+        force_authenticate(request, user=self.user1)
+        response = view(request, pk=2)
+        self.assertEqual(response.status_code, 403)
+
+    # def test_admin_and_staff_can_modify_users(self):
+    #     serializer = UserSerializer(
+    #         [self.user1, self.user2, self.superuser, self.staff_user],
+    #         many=True
+    #     )
     #     expected = JSONRenderer().render(serializer.data)
     #     factory = APIRequestFactory()
+    #     view = UserViewSet.as_view({'patch': 'partial_update'})
+    #     for user in (self.superuser, self.staff_user):
+    #         request = factory.patch("/user/", {""})
+    #         force_authenticate(request, user=user)
+    #         response = view(request, pk=1)
+    #         response.render()
+    #         self.assertEqual(response.content, expected)
+
+    # def test_regular_user_cannot_modify_users(self):
+    #     factory = APIRequestFactory()
     #     view = UserViewSet.as_view({'get': 'list'})
-    #     request = factory.get("/run/")
+    #     request = factory.get("/user/")
     #     force_authenticate(request, user=self.user1)
     #     response = view(request)
-    #     response.render()
-    #     self.assertEqual(response.content, expected)
-
-    # def test_list_fetches_all_data_if_superuser(self):
-    #     serializer = UserSerializer([self.run1, self.run2], many=True)
-    #     expected = JSONRenderer().render(serializer.data)
-    #     factory = APIRequestFactory()
-    #     view = UserViewSet.as_view({'get': 'list'})
-    #     request = factory.get("/run/")
-    #     force_authenticate(request, user=self.superuser)
-    #     response = view(request)
-    #     response.render()
-    #     self.assertEqual(response.content, expected)
-
+    #     self.assertEqual(response.status_code, 403)
+        
     # def test_partial_update_patches_data(self):
     #     for user in (self.user1, self.superuser):
     #         with self.subTest(user=user):
@@ -342,5 +388,3 @@ class UserViewSetTestCase(TestCase):
     #                 location="Porto",
     #                 owner=self.user1,
     #             )
-
-    # # POST as staff a new user

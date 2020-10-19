@@ -69,8 +69,3 @@ class UserViewSet(viewsets.ModelViewSet):
             return User.objects.all()
         else:
             return User.objects.filter(pk=user.pk)
-
-    # def perform_create(self, serializer):
-    #     user = self.request.user
-    #     if user.is_staff or user.is_superuser:
-    #         serializer.save()
