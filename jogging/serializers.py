@@ -37,7 +37,13 @@ class UserSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
-    
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        if password:
+            instance.set_password(password)
+        return super().update(instance, validated_data)
+
 
 class RunSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="owner.username", required=False)
