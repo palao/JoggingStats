@@ -139,13 +139,13 @@ class FilteringTestCase(FunctionalTestCase):
         # He wants to see the records he did in Toledo:
         params = {"location": "Toledo"}
         get_resp = requests.get(
-            self.live_server_url+"/run/", auth=self.auth, data=params,
+            self.live_server_url+"/run/", auth=self.auth, params=params,
         )
         self.check_list(get_resp, 2, **params)
         # Wonderful! What about his long runs in Frankfurt?
         params = {"location": "Frankfurt", "distance": 15.9}
         get_resp = requests.get(
-            self.live_server_url+"/run/", auth=self.auth, data=params,
+            self.live_server_url+"/run/", auth=self.auth, params=params,
         )
         self.check_list(get_resp, 4, **params)
         # Excellent!
@@ -158,7 +158,7 @@ class FilteringTestCase(FunctionalTestCase):
         params = {"total_distance_km": 11.3}
         get_resp = requests.get(
             self.live_server_url+"/weekly-reports/",
-            auth=self.auth, data=params,
+            auth=self.auth, params=params,
         )
         self.check_list(get_resp, 1, **params)
         # Great. 
@@ -173,6 +173,6 @@ class FilteringTestCase(FunctionalTestCase):
         # but this list is too long. He wants to focus in one user:
         params = {"username": self.username}
         get_resp = requests.get(
-            self.live_server_url+"/user/", auth=self.super_auth, data=params
+            self.live_server_url+"/user/", auth=self.super_auth, params=params
         )
         self.check_list(get_resp, 1, **params)
