@@ -124,7 +124,10 @@ class RunViewSetTestCase(TestCase):
         force_authenticate(request, user=self.user1)
         response = view(request)
         response.render()
-        self.assertEqual(response.content, expected)
+        self.assertEqual(
+            json.loads(response.content)["results"],
+            json.loads(expected)
+        )
 
     def test_list_fetches_all_data_if_superuser(self):
         serializer = RunSerializer([self.run1, self.run2], many=True)
@@ -135,7 +138,10 @@ class RunViewSetTestCase(TestCase):
         force_authenticate(request, user=self.superuser)
         response = view(request)
         response.render()
-        self.assertEqual(response.content, expected)
+        self.assertEqual(
+            json.loads(response.content)["results"],
+            json.loads(expected)
+        )
 
     def test_partial_update_patches_data(self):
         for user in (self.user1, self.superuser):
@@ -221,7 +227,10 @@ class WeeklyReportViewSetTestCase(TestCase):
         force_authenticate(request, user=user1)
         response = view(request)
         response.render()
-        self.assertEqual(response.content, expected)
+        self.assertEqual(
+            json.loads(response.content)["results"],
+            json.loads(expected)
+        )
         
     def test_cannot_create(self):
         factory = APIRequestFactory()
@@ -317,7 +326,10 @@ class UserViewSetTestCase(TestCase):
             force_authenticate(request, user=user)
             response = view(request)
             response.render()
-            self.assertEqual(response.content, expected)
+            self.assertEqual(
+                json.loads(response.content)["results"],
+                json.loads(expected)
+            )
 
     def test_regular_user_cannot_list_data_from_users(self):
         factory = APIRequestFactory()

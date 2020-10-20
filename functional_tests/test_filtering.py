@@ -127,7 +127,7 @@ class FilteringTestCase(FunctionalTestCase):
         )     
 
     def check_list(self, resp, expected_amount, **params_to_check):
-        items = json.loads(resp.content)
+        items = json.loads(resp.content)["results"]
         self.assertEqual(len(items), expected_amount)
         for item in items:
             for key, value in params_to_check.items():

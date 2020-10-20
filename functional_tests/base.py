@@ -55,6 +55,9 @@ class FunctionalTestCase(LiveServerTestCase):
         if single:
             # in this case, only 1 response is expected.
             posted_runs = [posted_runs]
+        else:
+            # for pagination:
+            posted_runs = posted_runs["results"]
         # results = []
         # for run in posted_runs:
         #     # to handle properly leading zeros:
