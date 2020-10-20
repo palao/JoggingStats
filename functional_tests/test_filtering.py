@@ -176,5 +176,3 @@ class FilteringTestCase(FunctionalTestCase):
             self.live_server_url+"/user/", auth=self.super_auth, data=params
         )
         self.check_list(get_resp, 1, **params)
-        
-        

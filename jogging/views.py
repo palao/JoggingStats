@@ -40,7 +40,9 @@ class NewAccount(generics.CreateAPIView):
 class RunViewSet(viewsets.ModelViewSet):
     serializer_class = RunSerializer
     permission_classes = (permissions.IsAuthenticated, IsOwnerOrAdmin)
-
+    filterset_fields = [
+        'date', 'distance', 'time', 'owner', 'location', 'weather', 'id']
+    
     def get_queryset(self):
         if self.request.user.is_superuser:
             return Run.objects.all()

@@ -76,7 +76,13 @@ class RunViewSetTestCase(TestCase):
                 location="Casablanca",
                 owner=self.user2,
             )
-        
+
+    def test_has_filter_set_fields_attribute(self):
+        expected = [
+            "date", "distance", "location", "weather", "time", "owner", "id"]
+        for item in expected:
+            self.assertIn(item, RunViewSet.filterset_fields)
+
     def test_create_allowed_if_authenticated(self):
         user = User.objects.create(username="paul")
         factory = APIRequestFactory()
