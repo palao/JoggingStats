@@ -56,9 +56,15 @@ class UsersMixIn:
         # given a superuser:
         self.super_user = User.objects.create_superuser(
             self.super_username, password=self.super_password)
+        self.all_users = [
+            {"username": self.super_user.username, "id": self.super_user.id}
+        ]
         # and a staff user:
         self.staff_user = User.objects.create_user(
             self.staff_username, password=self.staff_password, is_staff=True)
+        self.all_users.append(
+            {"username": self.staff_user.username, "id": self.staff_user.id}
+        )
         # and given that another user has already created an account:
         auth_data = {
             "username": self.another_username, "password": self.another_password
@@ -66,6 +72,7 @@ class UsersMixIn:
         post_resp = requests.post(
             self.live_server_url+"/new-account/", data=auth_data
         )
+        self.all_users.append(json.loads(post_resp.content))
         # and posted some data:
         response = requests.post(
             self.live_server_url+"/run/",
@@ -79,6 +86,7 @@ class UsersMixIn:
         post_resp = requests.post(
             self.live_server_url+"/new-account/", data=auth_data
         )
+        self.all_users.append(json.loads(post_resp.content))
         self.auth_data = (self.username, self.password)
         # he himself posts also some data:
         response = requests.post(
@@ -94,33 +102,35 @@ class UsersMixIn:
         is in the MixIn."""
         # the $BOSS can see the list of users:
         get_resp = requests.get(
-            self.live_server_url+"/user-list/", auth=self.auth
-        )        
-        self.check_get_run(get_resp, self.all_runs)
+            self.live_server_url+"/user/", auth=self.auth
+        )
+        self.check_get_run(get_resp, self.all_users)
         # he can add a new one:
-        put_resp = requests.put(
+        post_resp = requests.post(
             self.live_server_url+"/user/",
             data={"username": "aitor", "password": "7illA"}, auth=self.auth
         )
         # and it is indeed created:
-        self.assertEqual(put_resp.status_code, 201)
-        self.assertEqual(put_resp.reason, "Created")
-        resp_data = json.loads(put_resp.content)
+        self.assertEqual(post_resp.status_code, 201)
+        self.assertEqual(post_resp.reason, "Created")
+        resp_data = json.loads(post_resp.content)
+        pk = resp_data["id"]
+        del resp_data["id"]
         self.assertEqual(resp_data, {"username": "aitor"})
         # which is confirmed because there are 5 users now:
         get_resp = requests.get(
-            self.live_server_url+"/user-list/", auth=self.auth
-        )        
+            self.live_server_url+"/user/", auth=self.auth
+        )
         self.assertEqual(
             len(json.loads(get_resp.content)), 5
         )
         # He can also delete an entry that he has been told to be wrong:
         del_resp = requests.delete(
-            self.live_server_url+"/user/5/", auth=self.auth
+            self.live_server_url+f"/user/{pk}/", auth=self.auth
         )
         # and, yes, it is gone!
         get_resp = requests.get(
-            self.live_server_url+"/user-list/", auth=self.auth
+            self.live_server_url+"/user/", auth=self.auth
         )        
         self.assertEqual(
             len(json.loads(get_resp.content)), 4
