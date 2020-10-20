@@ -20,6 +20,7 @@
 ########################################################################
 
 from datetime import date, timedelta
+import json
 
 from django.contrib.staticfiles.testing import LiveServerTestCase
 import requests
@@ -70,7 +71,11 @@ class NewUserTestCase(LiveServerTestCase):
         self.assertEqual(post_resp.status_code, 201)
         # and the reason is: the account was created
         self.assertEqual(post_resp.reason, "Created")
-        # and to wrap it up, the text of the response includes the username:
-        self.assertEqual(post_resp.text, '{"username":"bob","id":1}')
+        # and to wrap it up...
+        content = json.loads(post_resp.content)
+        # there is an id assigned to him:
+        del content["id"]
+        # and the response includes the username:
+        self.assertEqual(content, {"username":"bob"})
         # Great! He got his account and he will try to submit data
         # for the first time!
