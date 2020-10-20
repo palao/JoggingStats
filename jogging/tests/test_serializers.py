@@ -91,39 +91,35 @@ class UserSerializerTestCase(TestCase):
         with self.assertRaises(KeyError):
             serializer.validated_data["password"]
 
-    def test_update_can_change_username(self):
+    def update_user(self, data, partial=False):
         user0 = User.objects.create(**self.user_definition)
         username0 = user0.username
         password0 = user0.password
-        serializer = UserSerializer(data=self.data_username, partial=True)
+        user0.set_password = MagicMock()
+        serializer = UserSerializer(data=data, partial=partial)
         serializer.is_valid()
         user = serializer.update(user0, serializer.validated_data)
+        return user0, user, username0, password0
+    
+    def test_update_can_change_username(self):
+        user0, user, username0, password0 = self.update_user(
+            self.data_username, partial=True)
         self.assertEqual(user.password, password0)
+        user0.set_password.assert_not_called()
         self.assertEqual(
             user.username,
             self.expected_validated_another_username["username"]
         )
 
     def test_update_can_change_password(self):
-        user0 = User.objects.create(**self.user_definition)
-        username0 = user0.username
-        password0 = user0.password
-        user0.set_password = MagicMock()
-        serializer = UserSerializer(data=self.data_password, partial=True)
-        serializer.is_valid()
-        user = serializer.update(user0, serializer.validated_data)
+        user0, user, username0, password0 = self.update_user(
+            self.data_password, partial=True)
         user0.set_password.assert_called_once_with(
             self.data_password["password"])
         self.assertEqual(user.username, username0)
 
     def test_update_can_change_username_and_password(self):
-        user0 = User.objects.create(**self.user_definition)
-        username0 = user0.username
-        password0 = user0.password
-        user0.set_password = MagicMock()
-        serializer = UserSerializer(data=self.another_data)
-        serializer.is_valid()
-        user = serializer.update(user0, serializer.validated_data)
+        user0, user, username0, password0 = self.update_user(self.another_data)
         user0.set_password.assert_called_once_with(
             self.another_data["password"])
         self.assertEqual(
