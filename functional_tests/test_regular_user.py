@@ -22,15 +22,16 @@
 from datetime import date, timedelta
 import json
 
-from django.contrib.staticfiles.testing import LiveServerTestCase
 import requests
 
 from .utils import get_weather
+from .base import FunctionalTestCase
+
 
 TODAY = date.today()
 
 
-class RegularUserTestCase(LiveServerTestCase):
+class RegularUserTestCase(FunctionalTestCase):
     username = "bob"
     password = "1Mpossibl3"
     run_data = [
@@ -79,12 +80,14 @@ class RegularUserTestCase(LiveServerTestCase):
             self.live_server_url+"/new-account/", data=auth_data
         )
         # and posted some data:
+        new_data = []
         for item in self.another_run_data:
-            requests.post(
+            post_resp = requests.post(
                 self.live_server_url+"/run/",
                 data=item, auth=(auth_data["username"], auth_data["password"])
             )
-        
+            new_data.append(json.loads(post_resp.content))
+        self.another_run_data = new_data
         # Bob himself made an account too:
         auth_data = {"username": self.username, "password": self.password}
         post_resp = requests.post(
@@ -92,38 +95,6 @@ class RegularUserTestCase(LiveServerTestCase):
         )
         self.auth_data = (self.username, self.password)
         
-    def check_post(self, resp, data):
-        # he gets the proper status code:
-        self.assertEqual(resp.status_code, 201)
-        # and the reason is: the run data was created
-        self.assertEqual(resp.reason, "Created")
-        # and to wrap it up, the text of the response has the posted data:
-        resp_data = json.loads(resp.content)
-        # to handle properly leading zeros:
-        h, m, s = [float(_) for _ in resp_data["time"].split(":")]
-        resp_data["time"] = str(timedelta(hours=h, minutes=m, seconds=s))
-        del resp_data["weather"] #  don't look at weather for now!
-        self.assertEqual(resp_data, data)
-
-    def check_get_run(self, resp, items):
-        # the response is ok
-        self.assertTrue(resp.ok)
-        # with the proper status code:
-        self.assertEqual(resp.status_code, 200)
-        # and the reason is expectedly OK
-        self.assertEqual(resp.reason, "OK")
-        # Now, he sees in the response the data previously posted:
-        posted_runs = json.loads(resp.content)
-        results = []
-        for run in posted_runs:
-            # to handle properly leading zeros:
-            h, m, s = [float(_) for _ in run["time"].split(":")]
-            run["time"] = str(timedelta(hours=h, minutes=m, seconds=s))
-            del run["weather"] #  don't look at weather for now!
-            results.append(run)
-        for item in items:
-            self.assertIn(item, results)
-
     def test_can_save_data(self):
         # Now that he has an account, Bob would like to finally send
         # data for his run this morning:
@@ -131,13 +102,18 @@ class RegularUserTestCase(LiveServerTestCase):
             self.live_server_url+"/run/", data=self.run_data[0], auth=self.auth_data
         )
         self.check_post(post_resp, self.run_data[0])
-        # Wonderful!
+        new_data = json.loads(post_resp.content)
+        self.run_data[0] = new_data
+        # Wonderful! He sees that the posted data has his own username included:
+        self.assertEqual(new_data["user"], self.username)
         # He also stores yesterday's run data:
         post_resp = requests.post(
             self.live_server_url+"/run/",
             data=self.run_data[1], auth=self.auth_data
         )
         self.check_post(post_resp, self.run_data[1])
+        self.run_data[1] = json.loads(post_resp.content)
+        
         # But he is wondering... are the data really stored? He tries to
         # retrieve them:
         get_resp = requests.get(
@@ -168,4 +144,70 @@ class RegularUserTestCase(LiveServerTestCase):
             self.assertNotEqual(item["weather"], "?")
         # That is nice! The weather data is real! That will be very useful
         # for him.
+        
+    def test_can_update_own_data(self):
+        # after posting some data:
+        for irun_data, run_data in enumerate(self.run_data):
+            post_resp = requests.post(
+                self.live_server_url+"/run/", data=run_data, auth=self.auth_data
+            )
+            self.run_data[irun_data] = json.loads(post_resp.content)
+        # bob realized that he typed a wrong distance on the first record.
+        # He tries to fix that with a PATCH:
+        pk = self.run_data[0]["id"]
+        patch_resp = requests.patch(
+            self.live_server_url+f"/run/{pk}/",
+            data={"distance": 10.3}, auth=self.auth_data
+        )
+        # and he sees that it is updated properly:
+        pk = self.run_data[1]["id"]
+        expected_item = self.run_data[0].copy()
+        expected_item["distance"] = 10.3
+        self.check_get_run(patch_resp, [expected_item], single=True)
+        # and he also realized that another entry is completely wrong,
+        # so he fixes it:
+        item = {
+            "date": str(TODAY-timedelta(days=2)),
+            "distance": 10.7,
+            "time": "01:06:22",
+            "location": "Rome",
+        }
+        put_resp = requests.put(
+            self.live_server_url+f"/run/{pk}/",
+            data=item, auth=self.auth_data
+        )
+        item.update({
+            "id": pk,
+            "weather": self.run_data[1]["weather"],
+            "user": self.run_data[1]["user"]
+        })
+        self.check_get_run(put_resp, [item], single=True)
+        # Sweet!
+        
+    def test_cannot_update_run_records_from_other_users(self):
+        # Bob wants to fix an entry in his statistics that is wrong.
+        # The location must be changed:
+        pk = self.another_run_data[0]["id"]
+        patch_resp = requests.patch(
+            self.live_server_url+f"/run/{pk}/",
+            data={"location": "Sevilla"}, auth=self.auth_data
+        )
+        # but he got a 404:
+        self.assertEqual(patch_resp.status_code, 404)
+        # Out of curiosity. Bob wonders if he can change a complete record
+        # not belonging to him...
+        item = {
+            "date": str(TODAY-timedelta(days=2)),
+            "distance": 10.7,
+            "time": str(timedelta(hours=1, minutes=6, seconds=22)),
+            "location": "Rome",
+        }
+        pk = self.another_run_data[1]["id"]
+        put_resp = requests.put(
+            self.live_server_url+f"/run/{pk}/",
+            data=item, auth=self.auth_data
+        )
+        # but he cannot, as expected:
+        self.assertEqual(put_resp.status_code, 404)
+        
         

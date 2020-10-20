@@ -71,6 +71,6 @@ class NewUserTestCase(LiveServerTestCase):
         # and the reason is: the account was created
         self.assertEqual(post_resp.reason, "Created")
         # and to wrap it up, the text of the response includes the username:
-        self.assertEqual(post_resp.text, '{"username":"bob"}')
+        self.assertEqual(post_resp.text, '{"username":"bob","id":1}')
         # Great! He got his account and he will try to submit data
         # for the first time!

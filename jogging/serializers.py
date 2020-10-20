@@ -25,10 +25,10 @@ from django.contrib.auth.models import User
 from jogging.models import Run, WeeklyReport
 
 
-class NewAccountSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'password')
+        fields = ('username', 'password', 'id')
         extra_kwargs = {'password': {'write_only': True}}
         
     def create(self, validated_data):
@@ -37,12 +37,22 @@ class NewAccountSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
-    
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        if password:
+            instance.set_password(password)
+        return super().update(instance, validated_data)
+
 
 class RunSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source="owner.username", required=False)
     class Meta:
         model = Run
-        fields = ("date", "distance", "time", "location", "weather")
+        fields = (
+            "id", "user", "date", "distance", "time", "location", "weather"
+        )
+        read_only_fields = ("id", "user")
 
 
 class FloatField(serializers.FloatField):

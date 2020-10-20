@@ -21,19 +21,20 @@
 
 import io
 from datetime import date, timedelta
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.parsers import JSONParser
 
 from jogging.serializers import (
-    NewAccountSerializer, RunSerializer, WeeklyReportSerializer, FloatField,
+    UserSerializer, RunSerializer, WeeklyReportSerializer, FloatField,
+    UserSerializer,
 )
 from jogging.models import Run, WeeklyReport
 
 
-class NewAccountSerializerTestCase(TestCase):
+class UserSerializerTestCase(TestCase):
     def setUp(self):
         json_data = b'{"username": "pedro", "password": "whatever"}'
         stream = io.BytesIO(json_data)
@@ -41,9 +42,39 @@ class NewAccountSerializerTestCase(TestCase):
         self.expected_validated_data = {
             "username": "pedro", "password": "whatever"
         }
+        self.user_definition = self.expected_validated_data
         
+        json_another_username = b'{"username": "peter"}'
+        stream = io.BytesIO(json_another_username)
+        self.data_username = JSONParser().parse(stream)
+        self.expected_validated_another_username = {"username": "peter"}
+
+        json_another_password = b'{"password": "wha7ever"}'
+        stream = io.BytesIO(json_another_password)
+        self.data_password = JSONParser().parse(stream)
+        self.expected_validated_another_password = {"password": "wha7ever"}
+
+        json_another_data = b'{"username": "peter", "password": "wha7ever"}'
+        stream = io.BytesIO(json_another_data)
+        self.another_data = JSONParser().parse(stream)
+        self.expected_validated_another_data = {
+            "username": "peter", "password": "wha7ever"
+        }
+        
+        
+    def test_can_serialize(self):
+        user = User.objects.create(username="pancho")
+        serializer = UserSerializer(user)
+        self.assertEqual(
+            serializer.data,
+            {
+                "id": 1,
+                "username": user.username,
+            }
+        )
+
     def test_can_deserialize_user(self):
-        serializer = NewAccountSerializer(data=self.data)
+        serializer = UserSerializer(data=self.data)
         self.assertTrue(serializer.is_valid())
         self.assertEqual(
             dict(serializer.validated_data),
@@ -51,7 +82,7 @@ class NewAccountSerializerTestCase(TestCase):
         )
 
     def test_create_makes_new_user(self):
-        serializer = NewAccountSerializer(data=self.data)
+        serializer = UserSerializer(data=self.data)
         serializer.is_valid()
         new_user = serializer.create(serializer.validated_data)
         self.assertEqual(User.objects.count(), 1)
@@ -59,6 +90,42 @@ class NewAccountSerializerTestCase(TestCase):
         self.assertTrue(new_user.password.startswith("pbkdf2_sha256$"))
         with self.assertRaises(KeyError):
             serializer.validated_data["password"]
+
+    def update_user(self, data, partial=False):
+        user0 = User.objects.create(**self.user_definition)
+        username0 = user0.username
+        password0 = user0.password
+        user0.set_password = MagicMock()
+        serializer = UserSerializer(data=data, partial=partial)
+        serializer.is_valid()
+        user = serializer.update(user0, serializer.validated_data)
+        return user0, user, username0, password0
+    
+    def test_update_can_change_username(self):
+        user0, user, username0, password0 = self.update_user(
+            self.data_username, partial=True)
+        self.assertEqual(user.password, password0)
+        user0.set_password.assert_not_called()
+        self.assertEqual(
+            user.username,
+            self.expected_validated_another_username["username"]
+        )
+
+    def test_update_can_change_password(self):
+        user0, user, username0, password0 = self.update_user(
+            self.data_password, partial=True)
+        user0.set_password.assert_called_once_with(
+            self.data_password["password"])
+        self.assertEqual(user.username, username0)
+
+    def test_update_can_change_username_and_password(self):
+        user0, user, username0, password0 = self.update_user(self.another_data)
+        user0.set_password.assert_called_once_with(
+            self.another_data["password"])
+        self.assertEqual(
+            user.username,
+            self.expected_validated_another_data["username"]
+        )
 
 
 class RunSerializerTestCase(TestCase):
@@ -83,6 +150,8 @@ class RunSerializerTestCase(TestCase):
                 "time": "01:00:02",
                 "location": "Las Vegas",
                 "weather": "Cloudy",
+                "id": 1,
+                "user": user.username,
             }
         )
 
@@ -146,3 +215,4 @@ class FloatFieldTestCase(TestCase):
         for icase, case in enumerate((1.229, 0.90234567, 34.43567890)):
             with self.subTest(case=case):
                 self.assertEqual(f.to_representation(case), expected[icase])
+

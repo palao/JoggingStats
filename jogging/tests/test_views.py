@@ -21,6 +21,7 @@
 
 from datetime import timedelta, date
 from unittest.mock import patch
+import json
 
 from django.urls import reverse
 from django.contrib.auth.models import User
@@ -28,9 +29,13 @@ from django.test import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.renderers import JSONRenderer
 
-from jogging.views import NewAccount, RunViewSet, WeeklyReportViewSet
+from jogging.views import (
+    NewAccount, RunViewSet, WeeklyReportViewSet, UserViewSet,
+)
 from jogging.models import Run, WeeklyReport
-from jogging.serializers import RunSerializer, WeeklyReportSerializer
+from jogging.serializers import (
+    RunSerializer, WeeklyReportSerializer, UserSerializer,
+)
 
 
 class NewAccountTestCase(TestCase):
@@ -51,6 +56,27 @@ class NewAccountTestCase(TestCase):
 
 
 class RunViewSetTestCase(TestCase):
+    def setUp(self):
+        self.user1 = User.objects.create(username="sam")
+        self.user2 = User.objects.create(username="dave")
+        self.superuser = User.objects.create_superuser(username="boss")
+        with patch("jogging.models.get_weather") as pget_weather:
+            pget_weather.return_value = "Cloudy"
+            self.run1 = Run.objects.create(
+                date=date(2020, 10, 13),
+                distance="5.6",
+                time=timedelta(minutes=53, seconds=22),
+                location="Porto",
+                owner=self.user1,
+            )
+            self.run2 = Run.objects.create(
+                date=date(2020, 9,23),
+                distance="4.9",
+                time=timedelta(minutes=30, seconds=8),
+                location="Casablanca",
+                owner=self.user2,
+            )
+        
     def test_create_allowed_if_authenticated(self):
         user = User.objects.create(username="paul")
         factory = APIRequestFactory()
@@ -83,36 +109,64 @@ class RunViewSetTestCase(TestCase):
         response = view(request)
         self.assertEqual(response.status_code, 403)
 
-    def test_list_fetches_data_from_user_logged_in(self):
-        user = User.objects.create(username="sam")
-        with patch("jogging.models.get_weather") as pget_weather:
-            pget_weather.return_value = "Cloudy"
-            run = Run.objects.create(
-                date=date(2020, 10, 13),
-                distance="5.6",
-                time=timedelta(minutes=53, seconds=22),
-                location="Porto",
-                owner=user,
-            )
-        serializer = RunSerializer([run], many=True)
+    def test_list_fetches_data_from_logged_in_user(self):
+        serializer = RunSerializer([self.run1], many=True)
         expected = JSONRenderer().render(serializer.data)
-        other_user = User.objects.create(username="dave")
-        with patch("jogging.models.get_weather") as pget_weather:
-            pget_weather.return_value = "Cloudy"
-            other_run = Run.objects.create(
-                date=date(2020, 9,23),
-                distance="4.9",
-                time=timedelta(minutes=30, seconds=8),
-                location="Casablanca",
-                owner=other_user,
-            )
         factory = APIRequestFactory()
         view = RunViewSet.as_view({'get': 'list'})
         request = factory.get("/run/")
-        force_authenticate(request, user=user)
+        force_authenticate(request, user=self.user1)
         response = view(request)
         response.render()
         self.assertEqual(response.content, expected)
+
+    def test_list_fetches_all_data_if_superuser(self):
+        serializer = RunSerializer([self.run1, self.run2], many=True)
+        expected = JSONRenderer().render(serializer.data)
+        factory = APIRequestFactory()
+        view = RunViewSet.as_view({'get': 'list'})
+        request = factory.get("/run/")
+        force_authenticate(request, user=self.superuser)
+        response = view(request)
+        response.render()
+        self.assertEqual(response.content, expected)
+
+    def test_partial_update_patches_data(self):
+        for user in (self.user1, self.superuser):
+            with self.subTest(user=user):
+                factory = APIRequestFactory()
+                view = RunViewSet.as_view({'patch': 'partial_update'})
+                request = factory.patch("/run/", {"location": "Winnipeg"})
+                force_authenticate(request, user=user)
+                response = view(request, pk=1)
+                response.render()
+                data = json.loads(response.content)
+                self.assertEqual(data["location"], "Winnipeg")
+                # restore:
+                self.run1.location = "Porto"
+                self.run1.save()
+
+    def test_destroy_deletes_data(self):
+        for iuser, user in enumerate((self.user1, self.superuser)):
+            ik = iuser*2+1 # because I'll destroy the 1st and add the 3rd
+            with self.subTest(user=user):
+                factory = APIRequestFactory()
+                view = RunViewSet.as_view({'delete': 'destroy'})
+                request = factory.delete("/run/")
+                force_authenticate(request, user=user)
+                response = view(request, pk=ik)
+                response.render()
+                self.assertEqual(Run.objects.count(), 1)
+                # add one more:
+                Run.objects.create(
+                    date=date(2020, 10, 13),
+                    distance="5.6",
+                    time=timedelta(minutes=53, seconds=22),
+                    location="Porto",
+                    owner=self.user1,
+                )
+
+    # POST as superuser in the name of another user?
 
 
 class WeeklyReportViewSetTestCase(TestCase):
@@ -195,3 +249,142 @@ class WeeklyReportViewSetTestCase(TestCase):
         force_authenticate(request, user=user)
         with self.assertRaises(AttributeError):
             response = view(request)
+
+
+class UserViewSetTestCase(TestCase):
+    def setUp(self):
+        self.user1 = User.objects.create(username="sam")
+        self.user2 = User.objects.create(username="dave")
+        self.superuser = User.objects.create_superuser(username="boss")
+        self.staff_user = User.objects.create(username="manue", is_staff=True)
+        
+    def test_staff_and_superuser_can_create(self):
+        new_username = "paul"
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'post': 'create'})
+        for user in (self.superuser, self.staff_user):
+            request = factory.post(
+                view,
+                {"username": new_username, "password": "tr1cky"}
+            )
+            force_authenticate(request, user=user)
+            response = view(request)
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(User.objects.count(), 5)
+            User.objects.filter(username="paul").first().delete()
+
+    def test_create_forbidden_if_not_logged_in(self):
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'post': 'create'})
+        request = factory.post(view, {"username": "paul"})
+        response = view(request)
+        self.assertEqual(response.status_code, 403)
+
+    def test_create_forbidden_if_not_staff_nor_superuser(self):
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'post': 'create'})
+        request = factory.post(view, {"username": "paul"})
+        force_authenticate(request, user=self.user1)
+        response = view(request)
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_and_staff_can_list_data_from_all_users(self):
+        serializer = UserSerializer(
+            [self.user1, self.user2, self.superuser, self.staff_user],
+            many=True
+        )
+        expected = JSONRenderer().render(serializer.data)
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'get': 'list'})
+        for user in (self.superuser, self.staff_user):
+            request = factory.get("/user/")
+            force_authenticate(request, user=user)
+            response = view(request)
+            response.render()
+            self.assertEqual(response.content, expected)
+
+    def test_regular_user_cannot_list_data_from_users(self):
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'get': 'list'})
+        request = factory.get("/user/")
+        force_authenticate(request, user=self.user1)
+        response = view(request)
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_and_staff_can_remove_users(self):
+        to_del_users = (self.user1, self.user2)
+        active_users = (self.superuser, self.staff_user)
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'delete': 'destroy'})
+        for iuser, (rip, user) in enumerate(zip(to_del_users, active_users), 1):
+            request = factory.delete("/user/")
+            force_authenticate(request, user=user)
+            response = view(request, pk=rip.id)
+            response.render()
+            self.assertEqual(User.objects.count(), 4-iuser)
+
+    def test_regular_user_cannot_remove_users(self):
+        factory = APIRequestFactory()
+        view = UserViewSet.as_view({'delete': 'destroy'})
+        request = factory.delete("/user/")
+        force_authenticate(request, user=self.user1)
+        response = view(request, pk=2)
+        self.assertEqual(response.status_code, 403)
+
+    # def test_admin_and_staff_can_modify_users(self):
+    #     serializer = UserSerializer(
+    #         [self.user1, self.user2, self.superuser, self.staff_user],
+    #         many=True
+    #     )
+    #     expected = JSONRenderer().render(serializer.data)
+    #     factory = APIRequestFactory()
+    #     view = UserViewSet.as_view({'patch': 'partial_update'})
+    #     for user in (self.superuser, self.staff_user):
+    #         request = factory.patch("/user/", {""})
+    #         force_authenticate(request, user=user)
+    #         response = view(request, pk=1)
+    #         response.render()
+    #         self.assertEqual(response.content, expected)
+
+    # def test_regular_user_cannot_modify_users(self):
+    #     factory = APIRequestFactory()
+    #     view = UserViewSet.as_view({'get': 'list'})
+    #     request = factory.get("/user/")
+    #     force_authenticate(request, user=self.user1)
+    #     response = view(request)
+    #     self.assertEqual(response.status_code, 403)
+        
+    # def test_partial_update_patches_data(self):
+    #     for user in (self.user1, self.superuser):
+    #         with self.subTest(user=user):
+    #             factory = APIRequestFactory()
+    #             view = UserViewSet.as_view({'patch': 'partial_update'})
+    #             request = factory.patch("/run/", {"location": "Winnipeg"})
+    #             force_authenticate(request, user=user)
+    #             response = view(request, pk=1)
+    #             response.render()
+    #             data = json.loads(response.content)
+    #             self.assertEqual(data["location"], "Winnipeg")
+    #             # restore:
+    #             self.run1.location = "Porto"
+    #             self.run1.save()
+
+    # def test_destroy_deletes_data(self):
+    #     for iuser, user in enumerate((self.user1, self.superuser)):
+    #         ik = iuser*2+1 # because I'll destroy the 1st and add the 3rd
+    #         with self.subTest(user=user):
+    #             factory = APIRequestFactory()
+    #             view = UserViewSet.as_view({'delete': 'destroy'})
+    #             request = factory.delete("/run/")
+    #             force_authenticate(request, user=user)
+    #             response = view(request, pk=ik)
+    #             response.render()
+    #             self.assertEqual(User.objects.count(), 1)
+    #             # add one more:
+    #             User.objects.create(
+    #                 date=date(2020, 10, 13),
+    #                 distance="5.6",
+    #                 time=timedelta(minutes=53, seconds=22),
+    #                 location="Porto",
+    #                 owner=self.user1,
+    #             )

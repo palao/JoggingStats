@@ -25,21 +25,25 @@ from rest_framework import permissions
 from django.contrib.auth.models import User
 
 from .serializers import (
-    NewAccountSerializer, RunSerializer, WeeklyReportSerializer,
+    RunSerializer, WeeklyReportSerializer, UserSerializer,
 )
+
 from .models import Run, WeeklyReport
-from .permissions import IsOwner
+from .permissions import IsOwnerOrAdmin, IsAdminOrStaff
+
 
 class NewAccount(generics.CreateAPIView):
     queryset = User.objects.all()
-    serializer_class = NewAccountSerializer
+    serializer_class = UserSerializer
 
 
 class RunViewSet(viewsets.ModelViewSet):
     serializer_class = RunSerializer
-    permission_classes = (permissions.IsAuthenticated, )
+    permission_classes = (permissions.IsAuthenticated, IsOwnerOrAdmin)
 
     def get_queryset(self):
+        if self.request.user.is_superuser:
+            return Run.objects.all()
         return Run.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
@@ -53,3 +57,15 @@ class WeeklyReportViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return WeeklyReport.objects.filter(owner=self.request.user)
 
+
+class UserViewSet(viewsets.ModelViewSet):
+    #queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = (permissions.IsAuthenticated, IsAdminOrStaff)
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return User.objects.all()
+        else:
+            return User.objects.filter(pk=user.pk)
