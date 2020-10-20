@@ -134,7 +134,7 @@ class WeeklyReportTestCase(LiveServerTestCase):
         # and the reason is expectedly OK
         self.assertEqual(get_resp.reason, "OK")
         # Now, he sees in the response the data previously posted:
-        stats = json.loads(get_resp.content)
+        stats = json.loads(get_resp.content)["results"]
         self.assertEqual(len(stats), len(self.expected_reports_data))
         for week, item in self.expected_reports_data.items():
             self.assertIn(item, stats)
@@ -172,7 +172,7 @@ class WeeklyReportTestCase(LiveServerTestCase):
         get_resp = requests.get(
             self.live_server_url+"/weekly-reports/", auth=self.auth_data
         )
-        stats = json.loads(get_resp.content)
+        stats = json.loads(get_resp.content)["results"]
         self.assertEqual(len(stats), len(self.expected_reports_data))
         for week, item in self.expected_reports_data.items():
             self.assertIn(item, stats)

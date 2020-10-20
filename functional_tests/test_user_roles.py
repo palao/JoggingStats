@@ -122,7 +122,7 @@ class UsersMixIn:
             self.live_server_url+"/user/", auth=self.auth
         )
         self.assertEqual(
-            len(json.loads(get_resp.content)), 5
+            len(json.loads(get_resp.content)["results"]), 5
         )
         # He can also delete an entry that he has been told to be wrong:
         del_resp = requests.delete(
@@ -133,7 +133,7 @@ class UsersMixIn:
             self.live_server_url+"/user/", auth=self.auth
         )        
         self.assertEqual(
-            len(json.loads(get_resp.content)), 4
+            len(json.loads(get_resp.content)["results"]), 4
         )
         
 

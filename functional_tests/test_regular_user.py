@@ -136,11 +136,11 @@ class RegularUserTestCase(FunctionalTestCase):
             self.live_server_url+"/run/", auth=self.auth_data
         )
         retrieved_runs = json.loads(get_resp.content)
-        self.assertEqual(len(retrieved_runs), len(self.run_data))
+        self.assertEqual(len(retrieved_runs["results"]), len(self.run_data))
         # he knows that because he knows how many runs he uploaded.
         # BTW, he notices that there is some information in each item
         # about weather. Is this real data, or only a placeholder?
-        for item in json.loads(get_resp.content):
+        for item in json.loads(get_resp.content)["results"]:
             self.assertNotEqual(item["weather"], "?")
         # That is nice! The weather data is real! That will be very useful
         # for him.
@@ -209,5 +209,23 @@ class RegularUserTestCase(FunctionalTestCase):
         )
         # but he cannot, as expected:
         self.assertEqual(put_resp.status_code, 404)
-        
+
+    def test_pagination(self):
+        # This test is a bit smoky for now...
+        # after posting some data:
+        for irun_data, run_data in enumerate(self.run_data):
+            post_resp = requests.post(
+                self.live_server_url+"/run/", data=run_data, auth=self.auth_data
+            )
+            self.run_data[irun_data] = json.loads(post_resp.content)
+        # Bob sees that the results listed:
+        get_resp = requests.get(
+            self.live_server_url+"/run/", auth=self.auth_data
+        )        
+        # are paginated:
+        content = json.loads(get_resp.content)
+        self.assertEqual(content["count"], 3)
+        self.assertIs(content["next"], None)
+        self.assertIs(content["previous"], None)
+
         

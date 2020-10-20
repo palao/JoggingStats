@@ -76,7 +76,13 @@ class RunViewSetTestCase(TestCase):
                 location="Casablanca",
                 owner=self.user2,
             )
-        
+
+    def test_has_filter_set_fields_attribute(self):
+        expected = [
+            "date", "distance", "location", "weather", "time", "owner", "id"]
+        for item in expected:
+            self.assertIn(item, RunViewSet.filterset_fields)
+
     def test_create_allowed_if_authenticated(self):
         user = User.objects.create(username="paul")
         factory = APIRequestFactory()
@@ -118,7 +124,10 @@ class RunViewSetTestCase(TestCase):
         force_authenticate(request, user=self.user1)
         response = view(request)
         response.render()
-        self.assertEqual(response.content, expected)
+        self.assertEqual(
+            json.loads(response.content)["results"],
+            json.loads(expected)
+        )
 
     def test_list_fetches_all_data_if_superuser(self):
         serializer = RunSerializer([self.run1, self.run2], many=True)
@@ -129,7 +138,10 @@ class RunViewSetTestCase(TestCase):
         force_authenticate(request, user=self.superuser)
         response = view(request)
         response.render()
-        self.assertEqual(response.content, expected)
+        self.assertEqual(
+            json.loads(response.content)["results"],
+            json.loads(expected)
+        )
 
     def test_partial_update_patches_data(self):
         for user in (self.user1, self.superuser):
@@ -170,6 +182,11 @@ class RunViewSetTestCase(TestCase):
 
 
 class WeeklyReportViewSetTestCase(TestCase):
+    def test_has_filter_set_fields_attribute(self):
+        expected = ["average_speed_kmph", "total_distance_km", "week_start"]
+        for item in expected:
+            self.assertIn(item, WeeklyReportViewSet.filterset_fields)
+
     def test_list_forbidden_if_not_logged_in(self):
         factory = APIRequestFactory()
         view = WeeklyReportViewSet.as_view({'get': 'list'})
@@ -210,7 +227,10 @@ class WeeklyReportViewSetTestCase(TestCase):
         force_authenticate(request, user=user1)
         response = view(request)
         response.render()
-        self.assertEqual(response.content, expected)
+        self.assertEqual(
+            json.loads(response.content)["results"],
+            json.loads(expected)
+        )
         
     def test_cannot_create(self):
         factory = APIRequestFactory()
@@ -258,6 +278,11 @@ class UserViewSetTestCase(TestCase):
         self.superuser = User.objects.create_superuser(username="boss")
         self.staff_user = User.objects.create(username="manue", is_staff=True)
         
+    def test_has_filter_set_fields_attribute(self):
+        expected = ["username"]
+        for item in expected:
+            self.assertIn(item, UserViewSet.filterset_fields)
+
     def test_staff_and_superuser_can_create(self):
         new_username = "paul"
         factory = APIRequestFactory()
@@ -301,7 +326,10 @@ class UserViewSetTestCase(TestCase):
             force_authenticate(request, user=user)
             response = view(request)
             response.render()
-            self.assertEqual(response.content, expected)
+            self.assertEqual(
+                json.loads(response.content)["results"],
+                json.loads(expected)
+            )
 
     def test_regular_user_cannot_list_data_from_users(self):
         factory = APIRequestFactory()
