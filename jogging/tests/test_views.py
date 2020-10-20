@@ -176,6 +176,11 @@ class RunViewSetTestCase(TestCase):
 
 
 class WeeklyReportViewSetTestCase(TestCase):
+    def test_has_filter_set_fields_attribute(self):
+        expected = ["average_speed_kmph", "total_distance_km", "week_start"]
+        for item in expected:
+            self.assertIn(item, WeeklyReportViewSet.filterset_fields)
+
     def test_list_forbidden_if_not_logged_in(self):
         factory = APIRequestFactory()
         view = WeeklyReportViewSet.as_view({'get': 'list'})
@@ -264,6 +269,11 @@ class UserViewSetTestCase(TestCase):
         self.superuser = User.objects.create_superuser(username="boss")
         self.staff_user = User.objects.create(username="manue", is_staff=True)
         
+    def test_has_filter_set_fields_attribute(self):
+        expected = ["username"]
+        for item in expected:
+            self.assertIn(item, UserViewSet.filterset_fields)
+
     def test_staff_and_superuser_can_create(self):
         new_username = "paul"
         factory = APIRequestFactory()

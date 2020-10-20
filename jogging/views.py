@@ -55,7 +55,9 @@ class RunViewSet(viewsets.ModelViewSet):
 class WeeklyReportViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = WeeklyReportSerializer
     permission_classes = (permissions.IsAuthenticated, )
-
+    filterset_fields = [
+        'average_speed_kmph', 'total_distance_km', 'week_start']
+    
     def get_queryset(self):
         return WeeklyReport.objects.filter(owner=self.request.user)
 
@@ -64,7 +66,8 @@ class UserViewSet(viewsets.ModelViewSet):
     #queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAuthenticated, IsAdminOrStaff)
-
+    filterset_fields = ["username"]
+    
     def get_queryset(self):
         user = self.request.user
         if user.is_staff or user.is_superuser:
