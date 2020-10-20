@@ -54,6 +54,13 @@ class UserSerializerTestCase(TestCase):
         self.data_password = JSONParser().parse(stream)
         self.expected_validated_another_password = {"password": "wha7ever"}
 
+        json_another_data = b'{"username": "peter", "password": "wha7ever"}'
+        stream = io.BytesIO(json_another_data)
+        self.another_data = JSONParser().parse(stream)
+        self.expected_validated_another_data = {
+            "username": "peter", "password": "wha7ever"
+        }
+        
         
     def test_can_serialize(self):
         user = User.objects.create(username="pancho")
@@ -108,6 +115,21 @@ class UserSerializerTestCase(TestCase):
         user0.set_password.assert_called_once_with(
             self.data_password["password"])
         self.assertEqual(user.username, username0)
+
+    def test_update_can_change_username_and_password(self):
+        user0 = User.objects.create(**self.user_definition)
+        username0 = user0.username
+        password0 = user0.password
+        user0.set_password = MagicMock()
+        serializer = UserSerializer(data=self.another_data)
+        serializer.is_valid()
+        user = serializer.update(user0, serializer.validated_data)
+        user0.set_password.assert_called_once_with(
+            self.another_data["password"])
+        self.assertEqual(
+            user.username,
+            self.expected_validated_another_data["username"]
+        )
 
 
 class RunSerializerTestCase(TestCase):
