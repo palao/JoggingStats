@@ -176,3 +176,28 @@ class FilteringTestCase(FunctionalTestCase):
             self.live_server_url+"/user/", auth=self.super_auth, params=params
         )
         self.check_list(get_resp, 1, **params)
+
+    def test_advanced_filtering_runs(self):
+        # Bob knows that there is a way to perform more advanced searches.
+        # The "search" param must be used for that. He tries it:
+        params = {"search": "distance lt 12"}
+        get_resp = requests.get(
+            self.live_server_url+"/run/", auth=self.auth, params=params,
+        )
+        self.check_list(get_resp, 2, distance=11.3)
+        # But he wants to perform a more advanced search:
+        params = {"search": '(distance gt 15) AND (location ne "Frankfurt")'}
+        get_resp = requests.get(
+            self.live_server_url+"/run/", auth=self.auth, params=params,
+        )
+        self.check_list(get_resp, 2, location="Madrid")
+        # And last:
+        params = {
+            "search": '((distance gt 15) AND (location ne "Frankfurt")) OR (distance lt 12)'
+        }
+        get_resp = requests.get(
+            self.live_server_url+"/run/", auth=self.auth, params=params,
+        )
+        self.check_list(get_resp, 4)
+        # Nice!
+
