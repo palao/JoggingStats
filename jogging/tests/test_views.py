@@ -20,7 +20,7 @@
 ########################################################################
 
 from datetime import timedelta, date
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import json
 
 from django.urls import reverse
@@ -179,6 +179,31 @@ class RunViewSetTestCase(TestCase):
                 )
 
     # POST as superuser in the name of another user?
+
+@patch("jogging.views.make_Qexpr_from_search_string")
+@patch("jogging.views.Run")
+class RunViewSetGetQuerySetTestCase(TestCase):
+    def setUp(self):
+        user = User.objects.create(username="malolo")
+        self.mviewset = MagicMock()
+        self.mviewset.request.user = user
+        self.mviewset.request.query_params = {}
+        
+    def test_returns_all_items_if_not_search_params_given(self, pRun, pmake):
+        self.assertEqual(
+            RunViewSet.get_queryset(self.mviewset),
+            pRun.objects.filter.return_value
+        )
+
+    def test_returns_filtered_items_if_search_params_given(self, pRun, pmake):
+        self.mviewset.request.query_params["search"] = "what?"
+        queryset0 = pRun.objects.filter.return_value
+        RunViewSet.get_queryset(self.mviewset)
+        queryset0.filter.assert_called_once_with(
+            pmake.return_value
+        )
+        pmake.assert_called_once_with("what?")
+        del self.mviewset.query_params["search"]
 
 
 class WeeklyReportViewSetTestCase(TestCase):
