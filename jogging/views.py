@@ -30,6 +30,7 @@ from .serializers import (
 
 from .models import Run, WeeklyReport
 from .permissions import IsOwnerOrAdmin, IsAdminOrStaff
+from .search import make_Qexpr_from_search_string
 
 
 class NewAccount(generics.CreateAPIView):
@@ -48,7 +49,12 @@ class RunViewSet(viewsets.ModelViewSet):
             queryset0 = Run.objects.all()
         else:
             queryset0 = Run.objects.filter(owner=self.request.user)
-        queryset = queryset0
+        q = self.request.query_params.get("search", None)
+        if q:
+            q = make_Qexpr_from_search_string(q)
+            queryset = queryset0.filter(q)
+        else:
+            queryset = queryset0
         return queryset
 
     def perform_create(self, serializer):
