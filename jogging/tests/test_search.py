@@ -19,5 +19,74 @@
 #
 ########################################################################
 
+import unittest
 
-from jogging.search import make_Qexpr_from_search_string
+from jogging.search import (
+    make_Qexpr_from_search_string, _generate_tokens, Token
+)
+
+
+TEST_CASES = {
+    "(date eq '2020-10-23')": (
+        [
+            Token(type='L_PAR', value='('),
+            Token(type='KEY', value='date'),
+            Token(type='COMPARISON', value='eq'),
+            Token(type='DATE', value='2020-10-23'),
+            Token(type='R_PAR', value=')')
+        ],
+        "(AND: ('date', '2020-10-23'))"
+    ),
+    "(distance gt 23)": (
+        [
+            Token(type='L_PAR', value='('),
+            Token(type='KEY', value='distance'),
+            Token(type='COMPARISON', value='gt'),
+            Token(type='NUM', value='23'),
+            Token(type='R_PAR', value=')')
+        ],
+        "(AND: ('distance__gt', 23.0))"
+    ),
+    "(time gt '11')": (
+        [Token(type='L_PAR', value='('), Token(type='KEY', value='time'), Token(type='COMPARISON', value='gt'), Token(type='NUM', value='11'), Token(type='R_PAR', value=')')],
+        "(AND: ('time__gt', 11.0))"
+    ),
+    "(time gt '11:23')": (
+        [Token(type='L_PAR', value='('), Token(type='KEY', value='time'), Token(type='COMPARISON', value='gt'), Token(type='TIME', value='11:23'), Token(type='R_PAR', value=')')],
+        "(AND: ('time__gt', '11:23'))",
+    ),
+    "(time lt '11:23:23.3')": (
+        [Token(type='L_PAR', value='('), Token(type='KEY', value='time'), Token(type='COMPARISON', value='lt'), Token(type='TIME', value='11:23:23.3'), Token(type='R_PAR', value=')')],
+        "(AND: ('time__lt', '11:23:23.3'))"
+    ),
+    '(location ne "Talavera de la Reina")': (
+        [Token(type='L_PAR', value='('), Token(type='KEY', value='location'), Token(type='COMPARISON', value='ne'), Token(type='STRING', value='Talavera de la Reina'), Token(type='R_PAR', value=')')],
+        "(NOT (AND: ('location', 'Talavera de la Reina')))"
+    ),
+    "(distance gt 20) OR (distance lt 10)": (
+        [Token(type='L_PAR', value='('), Token(type='KEY', value='distance'), Token(type='COMPARISON', value='gt'), Token(type='NUM', value='20'), Token(type='R_PAR', value=')'), Token(type='LOGICAL', value='or'), Token(type='L_PAR', value='('), Token(type='KEY', value='distance'), Token(type='COMPARISON', value='lt'), Token(type='NUM', value='10'), Token(type='R_PAR', value=')')],
+        "(OR: ('distance__gt', 20.0), ('distance__lt', 10.0))"
+    ),
+    "(date eq '2020-10-23') AND ((distance gt 20) OR (distance lt 10))": (
+        [Token(type='L_PAR', value='('), Token(type='KEY', value='date'), Token(type='COMPARISON', value='eq'), Token(type='DATE', value='2020-10-23'), Token(type='R_PAR', value=')'), Token(type='LOGICAL', value='and'), Token(type='L_PAR', value='('), Token(type='L_PAR', value='('), Token(type='KEY', value='distance'), Token(type='COMPARISON', value='gt'), Token(type='NUM', value='20'), Token(type='R_PAR', value=')'), Token(type='LOGICAL', value='or'), Token(type='L_PAR', value='('), Token(type='KEY', value='distance'), Token(type='COMPARISON', value='lt'), Token(type='NUM', value='10'), Token(type='R_PAR', value=')'), Token(type='R_PAR', value=')')],
+        "(AND: ('date', '2020-10-23'), (OR: ('distance__gt', 20.0), ('distance__lt', 10.0)))"
+    ),
+    "(date ne '2020-10-23') AND ((distance gt 20) OR (distance lt 10))": (
+        [Token(type='L_PAR', value='('), Token(type='KEY', value='date'), Token(type='COMPARISON', value='ne'), Token(type='DATE', value='2020-10-23'), Token(type='R_PAR', value=')'), Token(type='LOGICAL', value='and'), Token(type='L_PAR', value='('), Token(type='L_PAR', value='('), Token(type='KEY', value='distance'), Token(type='COMPARISON', value='gt'), Token(type='NUM', value='20'), Token(type='R_PAR', value=')'), Token(type='LOGICAL', value='or'), Token(type='L_PAR', value='('), Token(type='KEY', value='distance'), Token(type='COMPARISON', value='lt'), Token(type='NUM', value='10'), Token(type='R_PAR', value=')'), Token(type='R_PAR', value=')')],
+        "(AND: (NOT (AND: ('date', '2020-10-23'))), (OR: ('distance__gt', 20.0), ('distance__lt', 10.0)))"
+    ),
+}
+
+
+class MakeQexprFromSearchString(unittest.TestCase):
+    def test_delegates_to_QexprBuilder(self):
+        ...
+
+
+class TokenGeneratorTestCase(unittest.TestCase):
+    def test_regular_values(self):
+        for search, (tokens, strQ) in TEST_CASES.items():
+            self.assertEqual(
+                list(_generate_tokens(search)),
+                tokens
+            )

@@ -19,4 +19,37 @@
 #
 ########################################################################
 
+import re
+from collections import namedtuple
+
+
+KEY = r"(?P<KEY>[a-zA-Z_]+)"
+COMPARISON = r"(?P<COMPARISON>EQ|eq|NE|ne|GT|gt|LT|lt)"
+LOGICAL = r"(?P<LOGICAL>and|AND|or|OR)"
+L_PAR = r"(?P<L_PAR>[(])"
+R_PAR = r"(?P<R_PAR>[)])"
+DATE = r"(?P<DATE>\d{4}[-]\d{1,2}[-]\d{1,2})"
+NUM = r"(?P<NUM>\d+(\.\d*)?)"
+TIME = r"(?P<TIME>\d+:\d{1,2}(:\d{1,2}(\.\d+)?)?)"
+STRING = r"""(?P<quote>['"])(?P<STRING>[-a-zA-Z_ ]*?)(?P=quote)"""
+
+pattern = re.compile("|".join(
+    [COMPARISON, LOGICAL, STRING, KEY, DATE, TIME, NUM, L_PAR, R_PAR]
+))
+
+
+Token = namedtuple("Token", ["type", "value"])
+
+
+def _generate_tokens(text):
+    for m in re.finditer(pattern, text):
+        kind = m.lastgroup
+        if kind == "STRING":
+            value = m.group(kind)
+        else:
+            value = m.group().lower()
+        yield Token(kind, value)
+
+
 make_Qexpr_from_search_string = None
+
