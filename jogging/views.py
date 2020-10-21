@@ -45,8 +45,11 @@ class RunViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         if self.request.user.is_superuser:
-            return Run.objects.all()
-        return Run.objects.filter(owner=self.request.user)
+            queryset0 = Run.objects.all()
+        else:
+            queryset0 = Run.objects.filter(owner=self.request.user)
+        queryset = queryset0
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
