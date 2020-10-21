@@ -20,9 +20,10 @@
 ########################################################################
 
 import unittest
+from unittest.mock import patch
 
 from jogging.search import (
-    make_Qexpr_from_search_string, _generate_tokens, Token
+    make_Qexpr_from_search_string, _generate_tokens, Token, QexprBuilder,
 )
 
 
@@ -78,15 +79,28 @@ TEST_CASES = {
 }
 
 
+@patch("jogging.search.QexprBuilder")
 class MakeQexprFromSearchString(unittest.TestCase):
-    def test_delegates_to_QexprBuilder(self):
-        ...
+    def test_delegates_to_QexprBuilder(self, pQexprBuilder):
+        res = make_Qexpr_from_search_string("something")
+        self.assertEqual(res, pQexprBuilder.return_value.parse.return_value)
+        pQexprBuilder.return_value.parse.assert_called_once_with("something")
 
 
 class TokenGeneratorTestCase(unittest.TestCase):
     def test_regular_values(self):
-        for search, (tokens, strQ) in TEST_CASES.items():
+        for text, (tokens, strQ) in TEST_CASES.items():
             self.assertEqual(
-                list(_generate_tokens(search)),
+                list(_generate_tokens(text)),
                 tokens
+            )
+
+
+class QexprBuilderTestCase(unittest.TestCase):
+    def test_regular_values(self):
+        b = QexprBuilder()
+        for text, (tokens, strQ) in TEST_CASES.items():
+            self.assertEqual(
+                str(b.parse(text)),
+                strQ
             )
